@@ -66,21 +66,23 @@ Income
 - A shared expense scenario can be saved and loaded as a preset
 
 
-## Remaining available money (unallocated)
+## Remaining balance (unallocated)
 
-- Unallocated remaining money for each person after expenses. Calculation: Person's total income - person's total expenses.
-- Total unallocated remaining money for a household
+- Unallocated remaining balance for each person after expenses. Calculation: Person's total income - person's total expenses.
+- Total unallocated remaining balance for a household
 
 ## Savings
 
-- Not counted as expense
+- Shown as a list of percentages of the remaining balance
+- Show the amount in currency after percentage
+- Savings are not counted as an expense
 - Total savings percentages cannot exceed 100%
 - Percentage totals that are less than 100% are allowed with remaining percentage being unallocated savings
 - Each person can allocated their own personal savings using percentages
 - Each person can optionally distribute an amount of their own remaining money as a percentage to the households shared savings. Shared savings can be allocated using percentages.
 - Savings do not use scenarios
 
-Note: It is possible for there to be a total of three different savings, one for each persons personal savings and one shared savings.
+Note: It is possible for there to be a total of three different savings, one for each persons personal savings and one shared household savings.
 
 ### Example
 

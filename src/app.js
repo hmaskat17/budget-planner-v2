@@ -4,6 +4,7 @@ import './components/budget-income.js';
 import './components/budget-personal-expense.js';
 import './components/budget-shared-expense.js';
 import './components/budget-remaining-balance.js';
+import './components/budget-savings.js';
 import { createTotalAggregator } from './total-aggregator.js';
 
 // Only add/remove person rows on structural changes; renames shouldn't remount <person-editor>.
