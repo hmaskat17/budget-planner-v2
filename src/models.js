@@ -5,7 +5,7 @@
  */
 
 /**
- * @typedef {Object} Income
+ * @typedef {Object} Entry
  * @property {string} name
  * @property {number} amount
  */
@@ -14,7 +14,7 @@
  * @typedef {Object} Scenario
  * @property {string} id
  * @property {string} name
- * @property {Income[]} incomes
+ * @property {Entry[]} entries
  */
 
 export {};

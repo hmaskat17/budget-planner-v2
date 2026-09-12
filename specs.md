@@ -59,7 +59,7 @@ Income
 
 ## Shared Expense
 
-- Each shared expense belongs to a person
+- Each shared expense list item belongs to a person
 - Shows each persons total shared expense
 - Shows total combined shared expenses from all persons
 - Final shared expenses are derived from multiple sources (e.g. streaming, rent, electricity, internet, groceries, loans etc)

@@ -5,7 +5,7 @@ body {
     background-color: #f4f4f4;
 }
 
-#income-section {
+.budget-section {
     background-color: #fff;
     padding: 20px;
     margin: 20px auto;
@@ -14,32 +14,19 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-#income-section h2 {
+.budget-section h2 {
     margin-top: 0;
 }
 
-#income-people {
+.budget-columns {
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
 }
 
-#income-people budget-income {
+.budget-columns > * {
     flex: 1 1 260px;
     min-width: 260px;
-}
-
-#household-section {
-    background-color: #fff;
-    padding: 20px;
-    margin: 20px auto;
-    width: 90%;
-    max-width: 640px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-#household-section h2 {
-    margin-top: 0;
 }
 
 .person-row {
@@ -49,7 +36,8 @@ body {
     margin-bottom: 8px;
 }
 
-#household-total {
+#household-total,
+#household-expense-total {
     font-weight: bold;
     margin-top: 20px;
     border-top: 1px solid #ddd;

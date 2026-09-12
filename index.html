@@ -12,17 +12,24 @@
 
 <body>
     <!-- Household -->
-    <div id="household-section">
+    <div id="household-section" class="budget-section">
         <h2>Household</h2>
         <div id="household-people"></div>
         <button type="button" id="add-person">Add person</button>
     </div>
 
     <!-- Income -->
-    <div id="income-section">
+    <div id="income-section" class="budget-section">
         <h2>Income</h2>
-        <div id="income-people"></div>
+        <div id="income-people" class="budget-columns"></div>
         <p id="household-total">Household income: <span id="household-total-amount">0.00</span></p>
+    </div>
+
+    <!-- Personal Expenses -->
+    <div id="personal-expense-section" class="budget-section">
+        <h2>Personal Expenses</h2>
+        <div id="personal-expense-people" class="budget-columns"></div>
+        <p id="household-expense-total">Household personal expenses: <span id="household-expense-total-amount">0.00</span></p>
     </div>
 </body>
 

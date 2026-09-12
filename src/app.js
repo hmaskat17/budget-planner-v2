@@ -1,7 +1,8 @@
 import { personStore } from './person-store.js';
 import './components/person-editor.js';
 import './components/budget-income.js';
-import './household-total.js';
+import './components/budget-personal-expense.js';
+import { createTotalAggregator } from './total-aggregator.js';
 
 // Only add/remove person rows on structural changes; renames shouldn't remount <person-editor>.
 function renderPersonManagement() {
@@ -58,9 +59,9 @@ function renderPersonManagement() {
     addButton.hidden = !personStore.canAddPerson();
 }
 
-// Only add/remove <budget-income> columns on structural changes; renames shouldn't remount them.
-function renderIncomeColumns() {
-    const container = document.getElementById('income-people');
+// Only add/remove budget columns on structural changes; renames shouldn't remount them.
+function renderBudgetColumns(containerId, tagName) {
+    const container = document.getElementById(containerId);
     if (!container) {
         return;
     }
@@ -74,8 +75,8 @@ function renderIncomeColumns() {
     });
 
     currentIds.forEach((id) => {
-        if (!container.querySelector(`budget-income[person-id="${id}"]`)) {
-            const el = document.createElement('budget-income');
+        if (!container.querySelector(`${tagName}[person-id="${id}"]`)) {
+            const el = document.createElement(tagName);
             el.setAttribute('person-id', id);
             container.appendChild(el);
         }
@@ -86,8 +87,18 @@ document.getElementById('add-person')?.addEventListener('click', () => personSto
 
 personStore.subscribe(() => {
     renderPersonManagement();
-    renderIncomeColumns();
+    renderBudgetColumns('income-people', 'budget-income');
+    renderBudgetColumns('personal-expense-people', 'budget-personal-expense');
 });
 
 renderPersonManagement();
-renderIncomeColumns();
+renderBudgetColumns('income-people', 'budget-income');
+renderBudgetColumns('personal-expense-people', 'budget-personal-expense');
+
+createTotalAggregator({ tagName: 'budget-income', eventName: 'income-changed', totalElementId: 'household-total-amount' });
+createTotalAggregator({
+    tagName: 'budget-personal-expense',
+    eventName: 'personal-expense-changed',
+    totalElementId: 'household-expense-total-amount'
+});
+
