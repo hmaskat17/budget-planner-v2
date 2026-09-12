@@ -2,8 +2,9 @@
 /** @typedef {import('../models.js').Entry} Entry */
 import { personStore } from '../person-store.js';
 
-const sheet = new CSSStyleSheet();
-sheet.replaceSync(`
+/** Shared Shadow DOM stylesheet for scenario chips and entry rows; reusable by any scenario-based component. */
+export const scenarioSheet = new CSSStyleSheet();
+scenarioSheet.replaceSync(`
     :host {
         display: block;
     }
@@ -110,7 +111,7 @@ export class ScenarioBudgetElement extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
-        this.shadowRoot.adoptedStyleSheets = [sheet];
+        this.shadowRoot.adoptedStyleSheets = [scenarioSheet];
         /** @type {Record<string, { activeScenarioId: string, scenarios: Scenario[] }>} */
         this.data = loadAll(this.constructor.storageKey);
     }
@@ -189,77 +190,18 @@ export class ScenarioBudgetElement extends HTMLElement {
     }
 
     renderScenarioChips(state) {
-        const chipsContainer = document.createElement('div');
-        chipsContainer.className = 'scenario-chips';
-
-        state.scenarios.forEach((scenario) => {
-            const chip = document.createElement('div');
-            chip.className = 'scenario-chip' + (scenario.id === state.activeScenarioId ? ' active' : '');
-
-            const label = document.createElement('button');
-            label.type = 'button';
-            label.className = 'scenario-chip-label';
-            label.textContent = scenario.name;
-            label.addEventListener('click', () => this.switchScenario(scenario.id));
-            chip.appendChild(label);
-
-            const renameButton = document.createElement('button');
-            renameButton.type = 'button';
-            renameButton.className = 'scenario-chip-rename-trigger';
-            renameButton.title = 'Rename scenario';
-            renameButton.textContent = '\u270e';
-            renameButton.addEventListener('click', () => this.startRenameScenario(chip, scenario));
-            chip.appendChild(renameButton);
-
-            if (state.scenarios.length > 1) {
-                const deleteButton = document.createElement('button');
-                deleteButton.type = 'button';
-                deleteButton.className = 'scenario-chip-delete';
-                deleteButton.title = 'Delete scenario';
-                deleteButton.textContent = '\u00d7';
-                deleteButton.addEventListener('click', () => this.deleteScenario(scenario.id));
-                chip.appendChild(deleteButton);
-            }
-
-            chipsContainer.appendChild(chip);
+        return renderScenarioChips(state, {
+            onSwitch: (scenarioId) => this.switchScenario(scenarioId),
+            onStartRename: (chip, scenario) => this.startRenameScenario(chip, scenario),
+            onDelete: (scenarioId) => this.deleteScenario(scenarioId),
+            onAdd: () => this.addScenario()
         });
-
-        const addChip = document.createElement('button');
-        addChip.type = 'button';
-        addChip.className = 'scenario-chip-add';
-        addChip.title = 'New scenario';
-        addChip.textContent = '+';
-        addChip.addEventListener('click', () => this.addScenario());
-        chipsContainer.appendChild(addChip);
-
-        return chipsContainer;
     }
 
     startRenameScenario(chip, scenario) {
-        chip.innerHTML = '';
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'scenario-chip-rename';
-        input.value = scenario.name;
-        chip.appendChild(input);
-        input.focus();
-        input.select();
-
-        const commit = () => {
-            const newName = input.value.trim();
-            if (newName) {
-                this.renameScenario(scenario.id, newName);
-            } else {
-                this.render();
-            }
-        };
-        input.addEventListener('blur', commit);
-        input.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                input.blur();
-            } else if (event.key === 'Escape') {
-                this.render();
-            }
+        startRenameScenario(chip, scenario, {
+            onCommit: (newName) => this.renameScenario(scenario.id, newName),
+            onCancel: () => this.render()
         });
     }
 
@@ -379,15 +321,105 @@ export class ScenarioBudgetElement extends HTMLElement {
     }
 }
 
-function createDefaultScenario() {
-    return { id: uid('scenario'), name: 'Default', entries: [{ name: '', amount: 0 }] };
+/**
+ * Builds a chip-based scenario switcher. Reusable by any component backed by
+ * a `{ activeScenarioId, scenarios }` state, not just per-person ones.
+ * @param {{ activeScenarioId: string, scenarios: Scenario[] }} state
+ * @param {{ onSwitch: (scenarioId: string) => void, onStartRename: (chip: HTMLElement, scenario: Scenario) => void, onDelete: (scenarioId: string) => void, onAdd: () => void }} handlers
+ */
+export function renderScenarioChips(state, handlers) {
+    const chipsContainer = document.createElement('div');
+    chipsContainer.className = 'scenario-chips';
+
+    state.scenarios.forEach((scenario) => {
+        const chip = document.createElement('div');
+        chip.className = 'scenario-chip' + (scenario.id === state.activeScenarioId ? ' active' : '');
+
+        const label = document.createElement('button');
+        label.type = 'button';
+        label.className = 'scenario-chip-label';
+        label.textContent = scenario.name;
+        label.addEventListener('click', () => handlers.onSwitch(scenario.id));
+        chip.appendChild(label);
+
+        const renameButton = document.createElement('button');
+        renameButton.type = 'button';
+        renameButton.className = 'scenario-chip-rename-trigger';
+        renameButton.title = 'Rename scenario';
+        renameButton.textContent = '\u270e';
+        renameButton.addEventListener('click', () => handlers.onStartRename(chip, scenario));
+        chip.appendChild(renameButton);
+
+        if (state.scenarios.length > 1) {
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'scenario-chip-delete';
+            deleteButton.title = 'Delete scenario';
+            deleteButton.textContent = '\u00d7';
+            deleteButton.addEventListener('click', () => handlers.onDelete(scenario.id));
+            chip.appendChild(deleteButton);
+        }
+
+        chipsContainer.appendChild(chip);
+    });
+
+    const addChip = document.createElement('button');
+    addChip.type = 'button';
+    addChip.className = 'scenario-chip-add';
+    addChip.title = 'New scenario';
+    addChip.textContent = '+';
+    addChip.addEventListener('click', () => handlers.onAdd());
+    chipsContainer.appendChild(addChip);
+
+    return chipsContainer;
 }
 
-function uid(prefix) {
+/**
+ * Replaces a scenario chip's contents with a rename input.
+ * @param {HTMLElement} chip
+ * @param {Scenario} scenario
+ * @param {{ onCommit: (newName: string) => void, onCancel: () => void }} handlers
+ */
+export function startRenameScenario(chip, scenario, handlers) {
+    chip.innerHTML = '';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'scenario-chip-rename';
+    input.value = scenario.name;
+    chip.appendChild(input);
+    input.focus();
+    input.select();
+
+    const commit = () => {
+        const newName = input.value.trim();
+        if (newName) {
+            handlers.onCommit(newName);
+        } else {
+            handlers.onCancel();
+        }
+    };
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            input.blur();
+        } else if (event.key === 'Escape') {
+            handlers.onCancel();
+        }
+    });
+}
+
+/** @param {() => Entry} [entryFactory] */
+export function createDefaultScenario(entryFactory = () => ({ name: '', amount: 0 })) {
+    return { id: uid('scenario'), name: 'Default', entries: [entryFactory()] };
+}
+
+/** @param {string} prefix */
+export function uid(prefix) {
     return prefix + '-' + Math.random().toString(36).slice(2, 10);
 }
 
-function formatAmount(amount) {
+/** @param {number} amount */
+export function formatAmount(amount) {
     return amount.toFixed(2);
 }
 
