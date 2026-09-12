@@ -90,6 +90,8 @@ Person A has 500 remaining money. Person B has 100 remaining money. Person A dis
 
 ## Proportional contributions
 
+Proportional contribution means dividing shared costs based on each person's share of total income, so higher earners pay a larger percentage of expenses.
+
 Should include the following:
 - Total household income
 - Each persons proportional contributions as rounded percentages. Calculation: Person's income / Total household income. Round by 2 decimals.
@@ -98,11 +100,11 @@ Should include the following:
 - Each person's already paid expenses. This is the same as the total from a person's shared expenses total.
 - Each perons's balance to be settled. Calculation: Persons share of expenses - already paid expenses.
 
-There should be an option to set the balance to be settled as a perons income or expense, depending on which it is.
+There should be an option to set the balance to be settled as a persons income or expense, depending on which it is.
 
 ## Reserved money
 
 - Lists each persons money from other sources (e.g. other bank account, gold, cash)
-- Final totals are derived from multiple sources
+- Final totals are derived from the multiple sources
 
 Note: These are reserved in that they are purely informational to the budget and are not used in calculations

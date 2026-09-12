@@ -8,6 +8,7 @@
  * @typedef {Object} Entry
  * @property {string} name
  * @property {number} amount
+ * @property {boolean} [isSettlement]
  */
 
 /**

@@ -149,9 +149,14 @@ export class ScenarioBudgetElement extends HTMLElement {
         return state.scenarios.find((scenario) => scenario.id === state.activeScenarioId);
     }
 
-    /** @returns {number} */
+    /** @returns {number} total including any settlement adjustments */
     total() {
         return scenarioTotal(this.getActiveScenario());
+    }
+
+    /** @returns {number} base total excluding settlement adjustments */
+    baseTotal() {
+        return scenarioTotal(this.getActiveScenario(), true);
     }
 
     persistAndNotify() {
@@ -319,7 +324,55 @@ export class ScenarioBudgetElement extends HTMLElement {
         scenario.entries.splice(entryIndex, 1);
         this.render();
     }
+
+    /**
+     * Adds or updates an entry by name in the active scenario.
+     * @param {string} name
+     * @param {number} amount
+     * @param {boolean} [isSettlement=false]
+     */
+    addOrUpdateEntry(name, amount, isSettlement = false) {
+        const scenario = this.getActiveScenario();
+        const existing = scenario.entries.find((entry) => entry.name === name || (isSettlement && entry.isSettlement));
+        if (existing) {
+            existing.name = name;
+            existing.amount = amount;
+            if (isSettlement) {
+                existing.isSettlement = true;
+            }
+        } else {
+            // Replace a single empty initial entry if present
+            if (scenario.entries.length === 1 && scenario.entries[0].name === '' && Number(scenario.entries[0].amount) === 0) {
+                scenario.entries[0] = { name, amount, isSettlement };
+            } else {
+                scenario.entries.push({ name, amount, isSettlement });
+            }
+        }
+        this.persistAndNotify();
+        this.render();
+    }
+
+    /**
+     * Removes an entry by name or settlement flag if present.
+     * @param {string} name
+     */
+    removeEntryByName(name) {
+        const scenario = this.getActiveScenario();
+        const index = scenario.entries.findIndex((entry) => entry.name === name || entry.isSettlement);
+        if (index !== -1) {
+            if (scenario.entries.length === 1) {
+                scenario.entries[0] = { name: '', amount: 0 };
+            } else {
+                scenario.entries.splice(index, 1);
+            }
+            this.persistAndNotify();
+            this.render();
+        }
+    }
 }
+
+/** Default name used for settlement entries */
+export const SETTLEMENT_ENTRY_NAME = 'Shared expense settlement';
 
 /**
  * Builds a chip-based scenario switcher. Reusable by any component backed by
@@ -423,8 +476,13 @@ export function formatAmount(amount) {
     return amount.toFixed(2);
 }
 
-function scenarioTotal(scenario) {
-    return scenario.entries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+function scenarioTotal(scenario, excludeSettlement = false) {
+    return scenario.entries.reduce((sum, entry) => {
+        if (excludeSettlement && (entry.isSettlement || entry.name === SETTLEMENT_ENTRY_NAME)) {
+            return sum;
+        }
+        return sum + (Number(entry.amount) || 0);
+    }, 0);
 }
 
 /** @param {string} storageKey */
