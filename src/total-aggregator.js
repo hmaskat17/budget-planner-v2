@@ -9,8 +9,13 @@ export function createTotalAggregator({ tagName, eventName, totalElementId }) {
         if (!el) {
             return;
         }
-        const total = [...document.querySelectorAll(tagName)]
-            .reduce((sum, component) => sum + (typeof component.total === 'function' ? component.total() : 0), 0);
+        // Household totals exclude settlements, which only move money between persons.
+        const total = [...document.querySelectorAll(tagName)].reduce((sum, component) => {
+            if (typeof component.baseTotal === 'function') {
+                return sum + component.baseTotal();
+            }
+            return sum + (typeof component.total === 'function' ? component.total() : 0);
+        }, 0);
         el.textContent = total.toFixed(2);
     }
 

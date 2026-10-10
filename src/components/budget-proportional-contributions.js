@@ -1,5 +1,5 @@
 import { personStore } from '../person-store.js';
-import { formatAmount, SETTLEMENT_ENTRY_NAME } from './scenario-budget.js';
+import { formatAmount } from './scenario-budget.js';
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`
@@ -84,6 +84,7 @@ sheet.replaceSync(`
         color: #475569;
     }
     .apply-btn {
+        margin-top: 12px;
         font-size: 0.85em;
         padding: 5px 10px;
         cursor: pointer;
@@ -146,13 +147,79 @@ export class BudgetProportionalContributions extends HTMLElement {
         return typeof sharedExpenseEl?.total === 'function' ? sharedExpenseEl.total() : 0;
     }
 
-    render() {
+    /** Each person's proportional share, paid amount and balance, based on settlement-free income. */
+    computeRows() {
         const people = personStore.getAll();
-        const root = this.shadowRoot;
-        root.innerHTML = '';
-
         const totalIncome = people.reduce((sum, person) => sum + this.getPersonIncome(person.id), 0);
         const totalSharedExpenses = this.getTotalSharedExpenses();
+
+        const rows = people.map((person) => {
+            const income = this.getPersonIncome(person.id);
+            const percent = totalIncome > 0 ? (income / totalIncome) * 100 : (people.length ? 100 / people.length : 0);
+            const share = totalSharedExpenses * (percent / 100);
+            const paid = this.getPersonSharedExpensePaid(person.id);
+            return { person, income, percent, share, paid, balance: share - paid };
+        });
+        return { rows, totalIncome, totalSharedExpenses };
+    }
+
+    /** @param {string} personId */
+    getBudgetElements(personId) {
+        return {
+            income: document.querySelector(`budget-income[person-id="${personId}"]`),
+            expense: document.querySelector(`budget-personal-expense[person-id="${personId}"]`)
+        };
+    }
+
+    isApplied() {
+        return personStore.getAll().some((person) => {
+            const { income, expense } = this.getBudgetElements(person.id);
+            return income?.hasSettlement() || expense?.hasSettlement();
+        });
+    }
+
+    /** Owed amounts go to income, owing amounts to personal expenses; the household pot is unchanged. */
+    applySettlements(rows) {
+        rows.forEach(({ person, balance }) => {
+            const { income, expense } = this.getBudgetElements(person.id);
+            const amount = Number(Math.abs(balance).toFixed(2));
+            if (balance > 0.005) {
+                expense?.setSettlement(amount);
+                income?.removeSettlement();
+            } else if (balance < -0.005) {
+                income?.setSettlement(amount);
+                expense?.removeSettlement();
+            } else {
+                income?.removeSettlement();
+                expense?.removeSettlement();
+            }
+        });
+    }
+
+    removeSettlements() {
+        // Nested renders triggered by each removal would otherwise re-apply the remaining settlements.
+        this._removing = true;
+        try {
+            personStore.getAll().forEach((person) => {
+                const { income, expense } = this.getBudgetElements(person.id);
+                income?.removeSettlement();
+                expense?.removeSettlement();
+            });
+        } finally {
+            this._removing = false;
+        }
+        this.render();
+    }
+
+    render() {
+        const { rows, totalIncome, totalSharedExpenses } = this.computeRows();
+        const applied = this.isApplied();
+        // Keep applied settlements in sync when shared expenses or base incomes change.
+        if (applied && !this._removing) {
+            this.applySettlements(rows);
+        }
+        const root = this.shadowRoot;
+        root.innerHTML = '';
 
         // 1. Household Summary Row
         const summary = document.createElement('div');
@@ -174,13 +241,7 @@ export class BudgetProportionalContributions extends HTMLElement {
         const columns = document.createElement('div');
         columns.className = 'people-columns';
 
-        people.forEach((person) => {
-            const income = this.getPersonIncome(person.id);
-            const propContributionPercent = totalIncome > 0 ? (income / totalIncome) * 100 : (people.length ? 100 / people.length : 0);
-            const expenseShare = totalSharedExpenses * (propContributionPercent / 100);
-            const alreadyPaid = this.getPersonSharedExpensePaid(person.id);
-            const balance = expenseShare - alreadyPaid;
-
+        rows.forEach(({ person, income, percent: propContributionPercent, share: expenseShare, paid: alreadyPaid, balance }) => {
             const card = document.createElement('div');
             card.className = 'person-card';
 
@@ -214,65 +275,45 @@ export class BudgetProportionalContributions extends HTMLElement {
             mBalance.innerHTML = `<span>Balance to be settled:</span><span>${formatAmount(balance)} €</span>`;
             card.appendChild(mBalance);
 
-            // Settlement Action Section
+            // Settlement status badge
             const actionSection = document.createElement('div');
             actionSection.className = 'settlement-action';
 
+            const badge = document.createElement('span');
             if (balance > 0.005) {
-                const badge = document.createElement('span');
                 badge.className = 'status-badge owes';
-                badge.textContent = `Owes ${formatAmount(balance)} €`;
-                actionSection.appendChild(badge);
-
-                const applyBtn = document.createElement('button');
-                applyBtn.type = 'button';
-                applyBtn.className = 'apply-btn';
-                applyBtn.textContent = `+ Add ${formatAmount(balance)} € to Personal Expenses`;
-                applyBtn.addEventListener('click', () => {
-                    const pe = document.querySelector(`budget-personal-expense[person-id="${person.id}"]`);
-                    if (pe && typeof pe.addOrUpdateEntry === 'function') {
-                        pe.addOrUpdateEntry(SETTLEMENT_ENTRY_NAME, Number(formatAmount(balance)), true);
-                    }
-                    const inc = document.querySelector(`budget-income[person-id="${person.id}"]`);
-                    if (inc && typeof inc.removeEntryByName === 'function') {
-                        inc.removeEntryByName(SETTLEMENT_ENTRY_NAME);
-                    }
-                });
-                actionSection.appendChild(applyBtn);
+                badge.textContent = `Owes ${formatAmount(balance)} €${applied ? ' (in personal expenses)' : ''}`;
             } else if (balance < -0.005) {
-                const refundAmount = Math.abs(balance);
-                const badge = document.createElement('span');
                 badge.className = 'status-badge owed';
-                badge.textContent = `Owed ${formatAmount(refundAmount)} €`;
-                actionSection.appendChild(badge);
-
-                const applyBtn = document.createElement('button');
-                applyBtn.type = 'button';
-                applyBtn.className = 'apply-btn';
-                applyBtn.textContent = `+ Add ${formatAmount(refundAmount)} € to Income`;
-                applyBtn.addEventListener('click', () => {
-                    const inc = document.querySelector(`budget-income[person-id="${person.id}"]`);
-                    if (inc && typeof inc.addOrUpdateEntry === 'function') {
-                        inc.addOrUpdateEntry(SETTLEMENT_ENTRY_NAME, Number(formatAmount(refundAmount)), true);
-                    }
-                    const pe = document.querySelector(`budget-personal-expense[person-id="${person.id}"]`);
-                    if (pe && typeof pe.removeEntryByName === 'function') {
-                        pe.removeEntryByName(SETTLEMENT_ENTRY_NAME);
-                    }
-                });
-                actionSection.appendChild(applyBtn);
+                badge.textContent = `Owed ${formatAmount(Math.abs(balance))} €${applied ? ' (in income)' : ''}`;
             } else {
-                const badge = document.createElement('span');
                 badge.className = 'status-badge settled';
                 badge.textContent = 'Settled (0.00 €)';
-                actionSection.appendChild(badge);
             }
+            actionSection.appendChild(badge);
 
             card.appendChild(actionSection);
             columns.appendChild(card);
         });
 
         root.appendChild(columns);
+
+        const hasBalance = rows.some(({ balance }) => Math.abs(balance) > 0.005);
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'apply-btn toggle-settlement';
+        toggleBtn.textContent = applied
+            ? 'Remove settlement from income and personal expenses'
+            : 'Add settlement to income and personal expenses';
+        toggleBtn.disabled = !applied && !hasBalance;
+        toggleBtn.addEventListener('click', () => {
+            if (applied) {
+                this.removeSettlements();
+            } else {
+                this.applySettlements(rows);
+            }
+        });
+        root.appendChild(toggleBtn);
     }
 }
 

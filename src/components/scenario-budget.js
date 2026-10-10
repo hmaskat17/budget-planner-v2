@@ -17,6 +17,13 @@ scenarioSheet.replaceSync(`
     .entry-row input {
         width: 48%;
     }
+    .entry-row.settlement input {
+        background: #f1f5f9;
+        color: #475569;
+    }
+    .entry-spacer {
+        visibility: hidden;
+    }
     .add-entry-button {
         display: block;
         margin-bottom: 10px;
@@ -236,6 +243,26 @@ export class ScenarioBudgetElement extends HTMLElement {
             amountInput.placeholder = 'Amount';
             amountInput.required = true;
             amountInput.value = entry.amount;
+
+            // Settlement entries are managed by the proportional contributions component.
+            if (entry.isSettlement) {
+                nameInput.readOnly = true;
+                amountInput.readOnly = true;
+                entryRow.classList.add('settlement');
+                entryRow.appendChild(nameInput);
+                entryRow.appendChild(amountInput);
+                // Hidden placeholder keeps input widths aligned with editable rows.
+                const spacer = document.createElement('button');
+                spacer.type = 'button';
+                spacer.textContent = 'Remove';
+                spacer.className = 'entry-spacer';
+                spacer.tabIndex = -1;
+                spacer.setAttribute('aria-hidden', 'true');
+                entryRow.appendChild(spacer);
+                inputsContainer.appendChild(entryRow);
+                return;
+            }
+
             amountInput.addEventListener('input', () => {
                 // Store the raw string while typing so partial/exponent input (e.g. "1e") isn't clobbered.
                 entry.amount = amountInput.value;
@@ -325,49 +352,34 @@ export class ScenarioBudgetElement extends HTMLElement {
         this.render();
     }
 
-    /**
-     * Adds or updates an entry by name in the active scenario.
-     * @param {string} name
-     * @param {number} amount
-     * @param {boolean} [isSettlement=false]
-     */
-    addOrUpdateEntry(name, amount, isSettlement = false) {
+    /** @returns {boolean} */
+    hasSettlement() {
+        return this.getActiveScenario().entries.some((entry) => entry.isSettlement);
+    }
+
+    /** Adds or updates the single read-only settlement entry; no-op if already up to date. */
+    setSettlement(amount) {
         const scenario = this.getActiveScenario();
-        const existing = scenario.entries.find((entry) => entry.name === name || (isSettlement && entry.isSettlement));
+        const existing = scenario.entries.find((entry) => entry.isSettlement);
         if (existing) {
-            existing.name = name;
+            if (Number(existing.amount) === amount) {
+                return;
+            }
             existing.amount = amount;
-            if (isSettlement) {
-                existing.isSettlement = true;
-            }
         } else {
-            // Replace a single empty initial entry if present
-            if (scenario.entries.length === 1 && scenario.entries[0].name === '' && Number(scenario.entries[0].amount) === 0) {
-                scenario.entries[0] = { name, amount, isSettlement };
-            } else {
-                scenario.entries.push({ name, amount, isSettlement });
-            }
+            scenario.entries.push({ name: SETTLEMENT_ENTRY_NAME, amount, isSettlement: true });
         }
-        this.persistAndNotify();
         this.render();
     }
 
-    /**
-     * Removes an entry by name or settlement flag if present.
-     * @param {string} name
-     */
-    removeEntryByName(name) {
+    removeSettlement() {
         const scenario = this.getActiveScenario();
-        const index = scenario.entries.findIndex((entry) => entry.name === name || entry.isSettlement);
-        if (index !== -1) {
-            if (scenario.entries.length === 1) {
-                scenario.entries[0] = { name: '', amount: 0 };
-            } else {
-                scenario.entries.splice(index, 1);
-            }
-            this.persistAndNotify();
-            this.render();
+        const index = scenario.entries.findIndex((entry) => entry.isSettlement);
+        if (index === -1) {
+            return;
         }
+        scenario.entries.splice(index, 1);
+        this.render();
     }
 }
 
@@ -478,7 +490,7 @@ export function formatAmount(amount) {
 
 function scenarioTotal(scenario, excludeSettlement = false) {
     return scenario.entries.reduce((sum, entry) => {
-        if (excludeSettlement && (entry.isSettlement || entry.name === SETTLEMENT_ENTRY_NAME)) {
+        if (excludeSettlement && entry.isSettlement) {
             return sum;
         }
         return sum + (Number(entry.amount) || 0);
