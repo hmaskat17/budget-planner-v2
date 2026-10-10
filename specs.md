@@ -102,9 +102,8 @@ Should include the following:
 
 There should be an option to set the balance to be settled as a persons income or expense, depending on which it is.
 
-## Reserved money
+## Unallocated assets
 
-- Lists each persons money from other sources (e.g. other bank account, gold, cash)
+- Lists each persons money and assets from other sources (e.g. other bank account, gold, cash)
 - Final totals are derived from the multiple sources
-
-Note: These are reserved in that they are purely informational to the budget and are not used in calculations
+- Unallocated assets are purely informational to the budget and are not used in calculations

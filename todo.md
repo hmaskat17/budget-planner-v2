@@ -15,6 +15,4 @@ UI and functionality
 - Add english and finnish localization/translation
 
 Bugs and improvements
-- When adding what is owed to income or expenses, the household totals update when they should not since the total household pot is still the same - the settlements are just moved around and should affect personal incomes/expenses only.
-- The proportional contributions "add to" actions should probably be combined into one "add to" and "remove from" action for both persons. Also the amounts added into the other components should not be editable.
 - There is potentially a bug where after opening the app, the previously entered incomes for one person dissappeared and also the expense of the other person dissappeared. Not sure why that happened.
