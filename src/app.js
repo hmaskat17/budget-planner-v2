@@ -6,6 +6,7 @@ import './components/budget-shared-expense.js';
 import './components/budget-remaining-balance.js';
 import './components/budget-savings.js';
 import './components/budget-proportional-contributions.js';
+import './components/budget-unallocated-assets.js';
 import { createTotalAggregator } from './total-aggregator.js';
 
 // Only add/remove person rows on structural changes; renames shouldn't remount <person-editor>.
@@ -93,16 +94,23 @@ personStore.subscribe(() => {
     renderPersonManagement();
     renderBudgetColumns('income-people', 'budget-income');
     renderBudgetColumns('personal-expense-people', 'budget-personal-expense');
+    renderBudgetColumns('unallocated-assets-people', 'budget-unallocated-assets');
 });
 
 renderPersonManagement();
 renderBudgetColumns('income-people', 'budget-income');
 renderBudgetColumns('personal-expense-people', 'budget-personal-expense');
+renderBudgetColumns('unallocated-assets-people', 'budget-unallocated-assets');
 
 createTotalAggregator({ tagName: 'budget-income', eventName: 'income-changed', totalElementId: 'household-total-amount' });
 createTotalAggregator({
     tagName: 'budget-personal-expense',
     eventName: 'personal-expense-changed',
     totalElementId: 'household-expense-total-amount'
+});
+createTotalAggregator({
+    tagName: 'budget-unallocated-assets',
+    eventName: 'unallocated-assets-changed',
+    totalElementId: 'household-assets-total-amount'
 });
 

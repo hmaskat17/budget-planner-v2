@@ -13,6 +13,3 @@ UI and functionality
 - Add light/dark modes.
 - Review current state of budget logic. Does the app provide a good budget planner experience? Are there potential missing features?
 - Add english and finnish localization/translation
-
-Bugs and improvements
-- There is potentially a bug where after opening the app, the previously entered incomes for one person dissappeared and also the expense of the other person dissappeared. Not sure why that happened.

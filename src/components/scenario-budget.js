@@ -167,7 +167,10 @@ export class ScenarioBudgetElement extends HTMLElement {
     }
 
     persistAndNotify() {
-        localStorage.setItem(this.constructor.storageKey, JSON.stringify(this.data));
+        // Merge into fresh storage: sibling per-person elements each hold their own copy of the map.
+        const stored = loadAll(this.constructor.storageKey);
+        stored[this.personId] = this.ensureScenarioState();
+        localStorage.setItem(this.constructor.storageKey, JSON.stringify(stored));
         this.dispatchEvent(new CustomEvent(this.constructor.changeEventName, { bubbles: true, composed: true }));
     }
 
