@@ -1,0 +1,5 @@
+{
+  "name": "@budget-planner/web-legacy",
+  "private": true,
+  "type": "module"
+}

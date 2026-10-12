@@ -1,5 +1,19 @@
 {
   "name": "@budget-planner/web",
   "private": true,
-  "type": "module"
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@budget-planner/core": "*",
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
 }

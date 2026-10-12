@@ -23,7 +23,7 @@
 - DONE! Configure an npm workspaces monorepo with separate web and mobile apps and a shared core domain package. Important! Do not yet implement the NativeScript mobile app, only create the empty folder.
 - DONE! Domain: Extract shared models, budget calculations, and validation into UI-independent TypeScript modules.
 - DONE! Domain: Add Vitest unit tests alongside the extracted rules, including settlement and edge cases.
-- Web: Add and configure Vite and TypeScript. Migrate the existing JavaScript incrementally, using current JSDoc types as a guide.
+- Web: Add and configure Vite and TypeScript. Migrate the existing JavaScript, using current JSDoc types as a guide. Remove the domain logic that was already migrated to the domain layer.
 - Web: Add Lit and migrate the current UI incrementally. Use Lit templates and styles for presentation; use @lit/context for state shared within the web component tree, not as the cross-platform domain layer.
 
 ### Phase 2 - Product design decisions
