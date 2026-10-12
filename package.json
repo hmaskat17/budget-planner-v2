@@ -1,0 +1,9 @@
+{
+  "name": "budget-planner-v2",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
