@@ -20,10 +20,10 @@
   - Main refactor risk: components read each other's state through the DOM (e.g. savings and proportional contributions query `budget-income` elements). The core must own this state and expose pure functions that take data in and return results.
 
 ### Phase 1 - Refactoring project structure
-- Configure an npm workspaces monorepo with separate web and mobile apps and a shared core domain package.
-- Web: Add and configure Vite and TypeScript. Migrate the existing JavaScript incrementally, using current JSDoc types as a guide.
+- Configure an npm workspaces monorepo with separate web and mobile apps and a shared core domain package. Important! Do not yet implement the NativeScript mobile app, only create the empty folder.
 - Domain: Extract shared models, budget calculations, and validation into UI-independent TypeScript modules.
 - Domain: Add Vitest unit tests alongside the extracted rules, including settlement and edge cases.
+- Web: Add and configure Vite and TypeScript. Migrate the existing JavaScript incrementally, using current JSDoc types as a guide.
 - Web: Add Lit and migrate the current UI incrementally. Use Lit templates and styles for presentation; use @lit/context for state shared within the web component tree, not as the cross-platform domain layer.
 
 ### Phase 2 - Product design decisions
