@@ -1,16 +1,67 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web</title>
-    <link rel="stylesheet" href="./src/index.css" />
-    <script type="module" src="/src/my-element.ts"></script>
-  </head>
-  <body>
-    <my-element>
-      <h1>Get started</h1>
-    </my-element>
-  </body>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A simple budget planner to manage your finances.">
+    <link rel="stylesheet" href="/src/styles.css">
+    <script type="module" src="/src/main.ts"></script>
+    <title>Budget Planner</title>
+</head>
+
+<body>
+    <!-- Household -->
+    <div id="household-section" class="budget-section">
+        <h2>Household</h2>
+        <div id="household-people"></div>
+        <button type="button" id="add-person">Add person</button>
+    </div>
+
+    <!-- Income -->
+    <div id="income-section" class="budget-section">
+        <h2>Income</h2>
+        <div id="income-people" class="budget-columns"></div>
+        <p id="household-total">Household income: <span id="household-total-amount">0.00</span></p>
+    </div>
+
+    <!-- Personal Expenses -->
+    <div id="personal-expense-section" class="budget-section">
+        <h2>Personal Expenses</h2>
+        <div id="personal-expense-people" class="budget-columns"></div>
+        <p id="household-expense-total">Household personal expenses: <span id="household-expense-total-amount">0.00</span></p>
+    </div>
+
+    <!-- Shared Expenses: a single household-wide list, always visible regardless of any future per-person hide toggle -->
+    <div id="shared-expense-section" class="budget-section">
+        <h2>Shared Expenses</h2>
+        <budget-shared-expense></budget-shared-expense>
+    </div>
+
+    <!-- Remaining Balance: derived from income minus personal & shared expenses; stores no data of its own -->
+    <div id="remaining-balance-section" class="budget-section">
+        <h2>Remaining Balance</h2>
+        <budget-remaining-balance></budget-remaining-balance>
+    </div>
+
+    <!-- Savings: unified section with personal allocations and pooled shared savings -->
+    <div id="savings-section" class="budget-section">
+        <h2>Savings</h2>
+        <budget-savings></budget-savings>
+    </div>
+
+    <!-- Proportional Contributions: shared costs split based on income share -->
+    <div id="proportional-contributions-section" class="budget-section">
+        <h2>Proportional Contributions</h2>
+        <budget-proportional-contributions></budget-proportional-contributions>
+    </div>
+
+    <!-- Unallocated Assets: informational only, not used in any budget calculation -->
+    <div id="unallocated-assets-section" class="budget-section">
+        <h2>Unallocated Assets</h2>
+        <div id="unallocated-assets-people" class="budget-columns"></div>
+        <p id="household-assets-total">Household unallocated assets: <span id="household-assets-total-amount">0.00</span></p>
+    </div>
+</body>
+
 </html>
