@@ -1,159 +1,114 @@
+import { LitElement, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { consume } from '@lit/context';
 import type { Entry } from '@budget-planner/core';
 import { entriesTotal, formatAmount } from '@budget-planner/core';
-import { personStore } from '../person-store.ts';
-import { scenarioSheet } from './scenario-budget.ts';
-
-const STORAGE_KEY = 'budget-planner-unallocated-assets';
+import { scenarioStyles } from './scenario-budget.ts';
+import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 
 /**
  * Per-person list of money and assets held elsewhere (other accounts, gold, cash).
  * Purely informational: no other component reads these totals, and it uses no scenarios.
  */
-export class BudgetUnallocatedAssets extends HTMLElement {
-  static get observedAttributes(): string[] {
-    return ['person-id'];
-  }
+@customElement('budget-unallocated-assets')
+export class BudgetUnallocatedAssets extends LitElement {
+  static override styles = scenarioStyles;
 
-  data: Record<string, Entry[]>;
-  private _unsubscribe?: () => void;
+  @property({ type: String, attribute: 'person-id' })
+  personId = '';
 
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-    this.shadowRoot!.adoptedStyleSheets = [scenarioSheet];
-    this.data = load();
-  }
-
-  connectedCallback(): void {
-    this._unsubscribe = personStore.subscribe(() => this.render());
-    this.render();
-  }
-
-  disconnectedCallback(): void {
-    this._unsubscribe?.();
-  }
-
-  attributeChangedCallback(): void {
-    if (this.isConnected) {
-      this.render();
-    }
-  }
-
-  get personId(): string {
-    return this.getAttribute('person-id') ?? '';
-  }
+  @consume({ context: budgetContext, subscribe: true })
+  budget?: BudgetContextValue;
 
   entries(): Entry[] {
-    if (!this.data[this.personId]) {
-      this.data[this.personId] = [];
-    }
-    return this.data[this.personId];
+    return this.budget?.data.assetsByPerson[this.personId] ?? [];
   }
 
   total(): number {
     return entriesTotal(this.entries());
   }
 
-  persistAndNotify(): void {
-    const stored = load();
-    stored[this.personId] = this.entries();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-    this.dispatchEvent(new CustomEvent('unallocated-assets-changed', { bubbles: true, composed: true }));
-  }
-
-  render(): void {
-    const root = this.shadowRoot!;
-    root.innerHTML = '';
-
-    const heading = document.createElement('h3');
-    heading.className = 'person-name';
-    heading.textContent = personStore.get(this.personId)?.name ?? 'Person';
-    root.appendChild(heading);
-
-    const list = document.createElement('div');
-    list.className = 'entry-inputs';
-    this.entries().forEach((entry, index) => list.appendChild(this.renderRow(entry, index)));
-    root.appendChild(list);
-
-    const addButton = document.createElement('button');
-    addButton.type = 'button';
-    addButton.className = 'add-entry-button';
-    addButton.textContent = 'Add new asset';
-    addButton.addEventListener('click', () => {
-      this.entries().push({ name: '', amount: 0 });
-      this.persistAndNotify();
-      this.render();
-    });
-    root.appendChild(addButton);
-
-    const total = document.createElement('p');
-    total.className = 'person-total';
-    total.innerHTML = `Total: <span class="total-amount">${formatAmount(this.total())}</span>`;
-    root.appendChild(total);
-  }
-
-  renderRow(entry: Entry, index: number): HTMLElement {
-    const row = document.createElement('div');
-    row.className = 'entry-row';
-
-    const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.placeholder = 'Asset (e.g. cash, gold)';
-    nameInput.value = entry.name;
-    nameInput.addEventListener('input', () => {
-      entry.name = nameInput.value;
-      this.persistAndNotify();
-    });
-
-    const amountInput = document.createElement('input');
-    amountInput.type = 'number';
-    amountInput.placeholder = 'Amount';
-    amountInput.value = String(entry.amount);
-    amountInput.addEventListener('input', () => {
-      entry.amount = Number(amountInput.value) || 0;
-      this.updateTotal();
-    });
-    amountInput.addEventListener('blur', () => {
-      entry.amount = Number(amountInput.value) || 0;
-      this.updateTotal();
-    });
-
-    const removeButton = document.createElement('button');
-    removeButton.type = 'button';
-    removeButton.className = 'remove-entry-input';
-    removeButton.textContent = 'Remove';
-    removeButton.addEventListener('click', () => {
-      this.entries().splice(index, 1);
-      this.persistAndNotify();
-      this.render();
-    });
-
-    row.appendChild(nameInput);
-    row.appendChild(amountInput);
-    row.appendChild(removeButton);
-    return row;
-  }
-
-  updateTotal(): void {
-    const totalEl = this.shadowRoot?.querySelector('.total-amount');
-    if (totalEl) {
-      totalEl.textContent = formatAmount(this.total());
+  private _commit(entries: Entry[]): void {
+    if (this.personId && this.budget) {
+      this.budget.updateAssets(this.personId, entries);
     }
-    this.persistAndNotify();
+  }
+
+  addEntry(): void {
+    const list = [...this.entries(), { name: '', amount: 0 }];
+    this._commit(list);
+  }
+
+  removeEntry(index: number): void {
+    const list = this.entries().filter((_, idx) => idx !== index);
+    this._commit(list);
+  }
+
+  updateEntryName(index: number, name: string): void {
+    const list = this.entries().map((item, idx) => (idx === index ? { ...item, name } : item));
+    this._commit(list);
+  }
+
+  updateEntryAmount(index: number, amountStr: string): void {
+    const amount = Number(amountStr) || 0;
+    const list = this.entries().map((item, idx) => (idx === index ? { ...item, amount } : item));
+    this._commit(list);
+  }
+
+  override render() {
+    const person = this.budget?.data.people.find((p) => p.id === this.personId);
+    const entries = this.entries();
+
+    return html`
+      <h3 class="person-name">${person?.name ?? 'Person'}</h3>
+
+      <div class="entry-inputs">
+        ${entries.map(
+          (entry, index) => html`
+            <div class="entry-row">
+              <input
+                type="text"
+                placeholder="Asset (e.g. cash, gold)"
+                .value=${entry.name}
+                @input=${(e: Event) =>
+                  this.updateEntryName(index, (e.target as HTMLInputElement).value)}
+              />
+              <input
+                type="number"
+                placeholder="Amount"
+                .value=${String(entry.amount)}
+                @input=${(e: Event) =>
+                  this.updateEntryAmount(index, (e.target as HTMLInputElement).value)}
+              />
+              <button
+                type="button"
+                class="remove-entry-input"
+                @click=${() => this.removeEntry(index)}
+              >
+                Remove
+              </button>
+            </div>
+          `
+        )}
+      </div>
+
+      <button
+        type="button"
+        class="add-entry-button"
+        @click=${() => this.addEntry()}
+      >
+        Add new asset
+      </button>
+
+      <p class="person-total">
+        Total: <span class="total-amount">${formatAmount(this.total())}</span>
+      </p>
+    `;
   }
 }
 
-customElements.define('budget-unallocated-assets', BudgetUnallocatedAssets);
-
-function load(): Record<string, Entry[]> {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return {};
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, Entry[]>) : {};
-  } catch {
-    return {};
+declare global {
+  interface HTMLElementTagNameMap {
+    'budget-unallocated-assets': BudgetUnallocatedAssets;
   }
 }

@@ -1,22 +1,36 @@
+import { customElement } from 'lit/decorators.js';
+import type { ScenarioState } from '@budget-planner/core';
+import { createDefaultScenario, createId } from '@budget-planner/core';
 import { ScenarioBudgetElement } from './scenario-budget.ts';
+import type { BudgetContextValue } from '../context/budget-context.ts';
 
-/** Self-contained income budget component; owns its own scenario data, keyed by person-id. */
+/** Self-contained income budget component; consumes budgetContext. */
+@customElement('budget-income')
 export class BudgetIncome extends ScenarioBudgetElement {
-  static override get storageKey(): string {
-    return 'budget-planner-income';
-  }
-
-  static override get changeEventName(): string {
-    return 'income-changed';
-  }
-
-  static override get entryPlaceholder(): string {
+  override get entryPlaceholder(): string {
     return 'Income source';
   }
 
-  static override get addEntryLabel(): string {
+  override get addEntryLabel(): string {
     return 'Add new income';
+  }
+
+  override getScenarioState(budget: BudgetContextValue): ScenarioState {
+    const existing = budget.data.incomeByPerson[this.personId];
+    if (existing) {
+      return existing;
+    }
+    const fallback = createDefaultScenario(createId('scenario'));
+    return { activeScenarioId: fallback.id, scenarios: [fallback] };
+  }
+
+  override updateScenarioState(budget: BudgetContextValue, state: ScenarioState): void {
+    budget.updateIncome(this.personId, state);
   }
 }
 
-customElements.define('budget-income', BudgetIncome);
+declare global {
+  interface HTMLElementTagNameMap {
+    'budget-income': BudgetIncome;
+  }
+}

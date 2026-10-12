@@ -1,83 +1,70 @@
+import { LitElement, html, css } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { consume } from '@lit/context';
 import type { Scenario, ScenarioState, SharedExpenseEntry } from '@budget-planner/core';
 import { createId, entriesTotal, formatAmount } from '@budget-planner/core';
-import { personStore } from '../person-store.ts';
-import { scenarioSheet, renderScenarioChips, startRenameScenario } from './scenario-budget.ts';
-
-const STORAGE_KEY = 'budget-planner-shared-expense';
-
-const sheet = new CSSStyleSheet();
-sheet.replaceSync(`
-    .entry-row input[type="text"] {
-        width: 34%;
-    }
-    .entry-row input[type="number"] {
-        width: 18%;
-    }
-    .entry-row select {
-        width: 26%;
-    }
-    .person-subtotals {
-        margin: 10px 0;
-    }
-    .person-subtotal-row {
-        display: flex;
-        justify-content: space-between;
-    }
-    .household-total {
-        font-weight: bold;
-        border-top: 1px solid #ddd;
-        padding-top: 10px;
-        margin-top: 10px;
-    }
-`);
+import { scenarioStyles } from './scenario-budget.ts';
+import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 
 /**
  * Household-wide shared expense component. Unlike the per-person budgets, this mounts once:
  * every entry is tagged with a person-id so the list stays visible even if a person is hidden.
  */
-export class BudgetSharedExpense extends HTMLElement {
-  data: ScenarioState<SharedExpenseEntry>;
-  private _unsubscribe?: () => void;
+@customElement('budget-shared-expense')
+export class BudgetSharedExpense extends LitElement {
+  static override styles = [
+    scenarioStyles,
+    css`
+      .entry-row input[type="text"] {
+        width: 34%;
+      }
+      .entry-row input[type="number"] {
+        width: 18%;
+      }
+      .entry-row select {
+        width: 26%;
+      }
+      .person-subtotals {
+        margin: 10px 0;
+      }
+      .person-subtotal-row {
+        display: flex;
+        justify-content: space-between;
+      }
+      .household-total {
+        font-weight: bold;
+        border-top: 1px solid #ddd;
+        padding-top: 10px;
+        margin-top: 10px;
+      }
+    `
+  ];
 
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-    this.shadowRoot!.adoptedStyleSheets = [scenarioSheet, sheet];
-    this.data = load();
-  }
+  @consume({ context: budgetContext, subscribe: true })
+  budget?: BudgetContextValue;
 
-  connectedCallback(): void {
-    this._unsubscribe = personStore.subscribe(() => this.render());
-    this.render();
-  }
+  @state()
+  private _renamingScenarioId: string | null = null;
 
-  disconnectedCallback(): void {
-    this._unsubscribe?.();
+  @state()
+  private _renamingName = '';
+
+  private _getSharedState(): ScenarioState<SharedExpenseEntry> {
+    if (this.budget) {
+      return this.budget.data.sharedExpenses;
+    }
+    const fallback = createDefaultSharedScenario();
+    return { activeScenarioId: fallback.id, scenarios: [fallback] };
   }
 
   getActiveScenario(): Scenario<SharedExpenseEntry> {
-    const found = this.data.scenarios.find((scenario) => scenario.id === this.data.activeScenarioId);
+    const data = this._getSharedState();
+    const found = data.scenarios.find((scenario) => scenario.id === data.activeScenarioId);
     if (!found) {
       const fallback = createDefaultSharedScenario();
-      this.data.scenarios.push(fallback);
-      this.data.activeScenarioId = fallback.id;
       return fallback;
     }
     return found;
-  }
-
-  /** Reassigns entries belonging to a removed person to the first remaining person. */
-  reconcilePersonIds(): void {
-    const people = personStore.getAll();
-    if (!people.length) {
-      return;
-    }
-    const validIds = new Set(people.map((person) => person.id));
-    this.getActiveScenario().entries.forEach((entry) => {
-      if (!entry.personId || !validIds.has(entry.personId)) {
-        entry.personId = people[0].id;
-      }
-    });
   }
 
   personTotal(personId: string): number {
@@ -89,223 +76,276 @@ export class BudgetSharedExpense extends HTMLElement {
     return entriesTotal(this.getActiveScenario().entries);
   }
 
-  persistAndNotify(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-    this.dispatchEvent(new CustomEvent('shared-expense-changed', { bubbles: true, composed: true }));
-  }
-
-  render(): void {
-    this.reconcilePersonIds();
-    const activeScenario = this.getActiveScenario();
-    const people = personStore.getAll();
-    const root = this.shadowRoot!;
-    root.innerHTML = '';
-
-    root.appendChild(
-      renderScenarioChips(this.data as unknown as ScenarioState, {
-        onSwitch: (scenarioId) => this.switchScenario(scenarioId),
-        onStartRename: (chip, scenario) => this.handleStartRename(chip, scenario),
-        onDelete: (scenarioId) => this.deleteScenario(scenarioId),
-        onAdd: () => this.addScenario()
-      })
-    );
-    root.appendChild(this.renderEntryForm(activeScenario, people));
-    root.appendChild(this.renderSubtotals(people));
-
-    const total = document.createElement('p');
-    total.className = 'household-total';
-    total.innerHTML = `Combined shared expenses: <span class="total-amount">${formatAmount(this.total())}</span>`;
-    root.appendChild(total);
-
-    this.persistAndNotify();
-  }
-
-  updateTotals(): void {
-    const people = personStore.getAll();
-    people.forEach((person) => {
-      const el = this.shadowRoot?.querySelector(`[data-person-subtotal="${person.id}"]`);
-      if (el) {
-        el.textContent = formatAmount(this.personTotal(person.id));
-      }
-    });
-    const totalEl = this.shadowRoot?.querySelector('.household-total .total-amount');
-    if (totalEl) {
-      totalEl.textContent = formatAmount(this.total());
+  private _commitState(nextState: ScenarioState<SharedExpenseEntry>): void {
+    if (this.budget) {
+      this.budget.updateSharedExpenses(nextState);
     }
-    this.persistAndNotify();
-  }
-
-  handleStartRename(chip: HTMLElement, scenario: Scenario): void {
-    startRenameScenario(chip, scenario, {
-      onCommit: (newName) => this.renameScenario(scenario.id, newName),
-      onCancel: () => this.render()
-    });
-  }
-
-  renderEntryForm(scenario: Scenario<SharedExpenseEntry>, people: ReturnType<typeof personStore.getAll>): HTMLElement {
-    const form = document.createElement('div');
-    form.className = 'entry-form';
-
-    const inputsContainer = document.createElement('div');
-    inputsContainer.className = 'entry-inputs';
-
-    scenario.entries.forEach((entry, index) => {
-      const entryRow = document.createElement('div');
-      entryRow.className = 'entry-row';
-
-      const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.placeholder = 'Expense source';
-      nameInput.required = true;
-      nameInput.value = entry.name;
-      nameInput.addEventListener('input', () => {
-        entry.name = nameInput.value;
-        this.persistAndNotify();
-      });
-
-      const amountInput = document.createElement('input');
-      amountInput.type = 'number';
-      amountInput.placeholder = 'Amount';
-      amountInput.required = true;
-      amountInput.value = String(entry.amount);
-      amountInput.addEventListener('input', () => {
-        entry.amount = Number(amountInput.value) || 0;
-        this.updateTotals();
-      });
-      amountInput.addEventListener('blur', () => {
-        entry.amount = Number(amountInput.value) || 0;
-        this.render();
-      });
-
-      const personSelect = document.createElement('select');
-      people.forEach((person) => {
-        const option = document.createElement('option');
-        option.value = person.id;
-        option.textContent = person.name;
-        option.selected = person.id === entry.personId;
-        personSelect.appendChild(option);
-      });
-      personSelect.addEventListener('change', () => {
-        entry.personId = personSelect.value;
-        this.render();
-      });
-
-      const removeButton = document.createElement('button');
-      removeButton.type = 'button';
-      removeButton.className = 'remove-entry-input';
-      removeButton.textContent = 'Remove';
-      removeButton.addEventListener('click', () => this.removeEntry(index));
-
-      entryRow.appendChild(nameInput);
-      entryRow.appendChild(amountInput);
-      entryRow.appendChild(personSelect);
-      entryRow.appendChild(removeButton);
-      inputsContainer.appendChild(entryRow);
-    });
-
-    const addButton = document.createElement('button');
-    addButton.type = 'button';
-    addButton.className = 'add-entry-button';
-    addButton.textContent = 'Add new shared expense';
-    addButton.addEventListener('click', () => this.addEntry());
-
-    form.appendChild(inputsContainer);
-    form.appendChild(addButton);
-    return form;
-  }
-
-  renderSubtotals(people: ReturnType<typeof personStore.getAll>): HTMLElement {
-    const container = document.createElement('div');
-    container.className = 'person-subtotals';
-
-    people.forEach((person) => {
-      const row = document.createElement('div');
-      row.className = 'person-subtotal-row';
-
-      const label = document.createElement('span');
-      label.textContent = `${person.name}:`;
-
-      const amount = document.createElement('span');
-      amount.setAttribute('data-person-subtotal', person.id);
-      amount.textContent = formatAmount(this.personTotal(person.id));
-
-      row.appendChild(label);
-      row.appendChild(amount);
-      container.appendChild(row);
-    });
-
-    return container;
   }
 
   switchScenario(scenarioId: string): void {
-    this.data.activeScenarioId = scenarioId;
-    this.render();
+    const current = this._getSharedState();
+    this._commitState({ ...current, activeScenarioId: scenarioId });
   }
 
   addScenario(): void {
-    const scenario = createDefaultSharedScenario();
-    this.data.scenarios.push(scenario);
-    this.data.activeScenarioId = scenario.id;
-    this.render();
-
-    const chips = this.shadowRoot?.querySelectorAll('.scenario-chip');
-    const chip = chips && chips.length > 0 ? (chips[chips.length - 1] as HTMLElement) : null;
-    if (chip) {
-      this.handleStartRename(chip, scenario);
-    }
+    const current = this._getSharedState();
+    const newScenario = createDefaultSharedScenario();
+    this._commitState({
+      activeScenarioId: newScenario.id,
+      scenarios: [...current.scenarios, newScenario]
+    });
+    this.startRenameScenario(newScenario.id, newScenario.name);
   }
 
   deleteScenario(scenarioId: string): void {
-    if (this.data.scenarios.length <= 1) {
-      return;
-    }
-    this.data.scenarios = this.data.scenarios.filter((scenario) => scenario.id !== scenarioId);
-    if (this.data.activeScenarioId === scenarioId) {
-      this.data.activeScenarioId = this.data.scenarios[0].id;
-    }
-    this.render();
+    const current = this._getSharedState();
+    if (current.scenarios.length <= 1) return;
+
+    const remaining = current.scenarios.filter((s) => s.id !== scenarioId);
+    const nextActive = current.activeScenarioId === scenarioId ? remaining[0].id : current.activeScenarioId;
+    this._commitState({
+      activeScenarioId: nextActive,
+      scenarios: remaining
+    });
   }
 
-  renameScenario(scenarioId: string, newName: string): void {
-    const scenario = this.data.scenarios.find((candidate) => candidate.id === scenarioId);
-    if (!scenario) {
-      this.render();
-      return;
+  startRenameScenario(scenarioId: string, currentName: string): void {
+    this._renamingScenarioId = scenarioId;
+    this._renamingName = currentName;
+  }
+
+  commitRename(scenarioId: string): void {
+    const name = this._renamingName.trim();
+    if (name) {
+      const current = this._getSharedState();
+      this._commitState({
+        ...current,
+        scenarios: current.scenarios.map((s) => (s.id === scenarioId ? { ...s, name } : s))
+      });
     }
-    scenario.name = newName;
-    this.render();
+    this._renamingScenarioId = null;
+    this._renamingName = '';
+  }
+
+  cancelRename(): void {
+    this._renamingScenarioId = null;
+    this._renamingName = '';
   }
 
   addEntry(): void {
-    const people = personStore.getAll();
-    this.getActiveScenario().entries.push({ name: '', amount: 0, personId: people[0]?.id });
-    this.render();
+    const current = this._getSharedState();
+    const active = this.getActiveScenario();
+    const people = this.budget?.data.people ?? [];
+    const firstPersonId = people[0]?.id;
+
+    const updatedScenario: Scenario<SharedExpenseEntry> = {
+      ...active,
+      entries: [...active.entries, { name: '', amount: 0, personId: firstPersonId }]
+    };
+
+    this._commitState({
+      ...current,
+      scenarios: current.scenarios.map((s) => (s.id === active.id ? updatedScenario : s))
+    });
   }
 
   removeEntry(entryIndex: number): void {
-    this.getActiveScenario().entries.splice(entryIndex, 1);
-    this.render();
+    const current = this._getSharedState();
+    const active = this.getActiveScenario();
+
+    const updatedScenario: Scenario<SharedExpenseEntry> = {
+      ...active,
+      entries: active.entries.filter((_, idx) => idx !== entryIndex)
+    };
+
+    this._commitState({
+      ...current,
+      scenarios: current.scenarios.map((s) => (s.id === active.id ? updatedScenario : s))
+    });
+  }
+
+  updateEntryName(entryIndex: number, name: string): void {
+    const current = this._getSharedState();
+    const active = this.getActiveScenario();
+
+    const entries = active.entries.map((entry, idx) => (idx === entryIndex ? { ...entry, name } : entry));
+    this._commitState({
+      ...current,
+      scenarios: current.scenarios.map((s) => (s.id === active.id ? { ...s, entries } : s))
+    });
+  }
+
+  updateEntryAmount(entryIndex: number, amountStr: string): void {
+    const current = this._getSharedState();
+    const active = this.getActiveScenario();
+
+    const amount = Number(amountStr) || 0;
+    const entries = active.entries.map((entry, idx) => (idx === entryIndex ? { ...entry, amount } : entry));
+    this._commitState({
+      ...current,
+      scenarios: current.scenarios.map((s) => (s.id === active.id ? { ...s, entries } : s))
+    });
+  }
+
+  updateEntryPersonId(entryIndex: number, personId: string): void {
+    const current = this._getSharedState();
+    const active = this.getActiveScenario();
+
+    const entries = active.entries.map((entry, idx) => (idx === entryIndex ? { ...entry, personId } : entry));
+    this._commitState({
+      ...current,
+      scenarios: current.scenarios.map((s) => (s.id === active.id ? { ...s, entries } : s))
+    });
+  }
+
+  override render() {
+    const current = this._getSharedState();
+    const activeScenario = this.getActiveScenario();
+    const people = this.budget?.data.people ?? [];
+
+    return html`
+      <div class="scenario-chips">
+        ${current.scenarios.map((scenario) => {
+          const isActive = scenario.id === current.activeScenarioId;
+          const isRenaming = this._renamingScenarioId === scenario.id;
+
+          return html`
+            <div class="scenario-chip ${isActive ? 'active' : ''}">
+              ${isRenaming
+                ? html`
+                    <input
+                      type="text"
+                      class="scenario-chip-rename"
+                      .value=${this._renamingName}
+                      @input=${(e: Event) => (this._renamingName = (e.target as HTMLInputElement).value)}
+                      @blur=${() => this.commitRename(scenario.id)}
+                      @keydown=${(e: KeyboardEvent) => {
+                        if (e.key === 'Enter') this.commitRename(scenario.id);
+                        if (e.key === 'Escape') this.cancelRename();
+                      }}
+                      autofocus
+                    />
+                  `
+                : html`
+                    <button
+                      type="button"
+                      class="scenario-chip-label"
+                      @click=${() => this.switchScenario(scenario.id)}
+                    >
+                      ${scenario.name}
+                    </button>
+                    <button
+                      type="button"
+                      class="scenario-chip-rename-trigger"
+                      title="Rename scenario"
+                      @click=${() => this.startRenameScenario(scenario.id, scenario.name)}
+                    >
+                      &#x270e;
+                    </button>
+                    ${current.scenarios.length > 1
+                      ? html`
+                          <button
+                            type="button"
+                            class="scenario-chip-delete"
+                            title="Delete scenario"
+                            @click=${() => this.deleteScenario(scenario.id)}
+                          >
+                            &times;
+                          </button>
+                        `
+                      : ''}
+                  `}
+            </div>
+          `;
+        })}
+        <button
+          type="button"
+          class="scenario-chip-add"
+          title="New scenario"
+          @click=${() => this.addScenario()}
+        >
+          +
+        </button>
+      </div>
+
+      <div class="entry-form">
+        <div class="entry-inputs">
+          ${activeScenario.entries.map((entry, index) => html`
+            <div class="entry-row">
+              <input
+                type="text"
+                placeholder="Expense source"
+                required
+                .value=${entry.name}
+                @input=${(e: Event) =>
+                  this.updateEntryName(index, (e.target as HTMLInputElement).value)}
+              />
+              <input
+                type="number"
+                placeholder="Amount"
+                required
+                .value=${String(entry.amount)}
+                @input=${(e: Event) =>
+                  this.updateEntryAmount(index, (e.target as HTMLInputElement).value)}
+              />
+              <select
+                @change=${(e: Event) =>
+                  this.updateEntryPersonId(index, (e.target as HTMLSelectElement).value)}
+              >
+                ${people.map(
+                  (person) => html`
+                    <option
+                      value=${person.id}
+                      ?selected=${person.id === entry.personId}
+                    >
+                      ${person.name}
+                    </option>
+                  `
+                )}
+              </select>
+              <button
+                type="button"
+                class="remove-entry-input"
+                @click=${() => this.removeEntry(index)}
+              >
+                Remove
+              </button>
+            </div>
+          `)}
+        </div>
+        <button
+          type="button"
+          class="add-entry-button"
+          @click=${() => this.addEntry()}
+        >
+          Add new shared expense
+        </button>
+      </div>
+
+      <div class="person-subtotals">
+        ${people.map(
+          (person) => html`
+            <div class="person-subtotal-row">
+              <span>${person.name}:</span>
+              <span data-person-subtotal=${person.id}>${formatAmount(this.personTotal(person.id))}</span>
+            </div>
+          `
+        )}
+      </div>
+
+      <p class="household-total">
+        Combined shared expenses: <span class="total-amount">${formatAmount(this.total())}</span>
+      </p>
+    `;
   }
 }
 
-customElements.define('budget-shared-expense', BudgetSharedExpense);
+declare global {
+  interface HTMLElementTagNameMap {
+    'budget-shared-expense': BudgetSharedExpense;
+  }
+}
 
 function createDefaultSharedScenario(): Scenario<SharedExpenseEntry> {
   return { id: createId('scenario'), name: 'Default', entries: [] };
-}
-
-function load(): ScenarioState<SharedExpenseEntry> {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.scenarios) && parsed.scenarios.length > 0) {
-        return parsed as ScenarioState<SharedExpenseEntry>;
-      }
-    } catch {
-      // Ignore corrupt data and fall back to defaults.
-    }
-  }
-  const scenario = createDefaultSharedScenario();
-  return { activeScenarioId: scenario.id, scenarios: [scenario] };
 }

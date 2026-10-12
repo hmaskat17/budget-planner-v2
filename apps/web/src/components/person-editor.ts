@@ -1,75 +1,61 @@
-import { personStore } from '../person-store.ts';
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { consume } from '@lit/context';
+import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 
-const sheet = new CSSStyleSheet();
-sheet.replaceSync(`
+/** Edits a person's shared display name; consumes budgetContext. */
+@customElement('person-editor')
+export class PersonEditor extends LitElement {
+  static override styles = css`
     :host {
-        display: block;
-        margin-bottom: 4px;
+      display: block;
+      margin-bottom: 4px;
     }
     input {
-        font: inherit;
-        border: none;
-        border-bottom: 1px solid transparent;
-        background: transparent;
-        padding: 0;
+      font: inherit;
+      border: none;
+      border-bottom: 1px solid transparent;
+      background: transparent;
+      padding: 0;
     }
     input:focus {
-        border-bottom-color: #4a90d9;
-        outline: none;
+      border-bottom-color: #4a90d9;
+      outline: none;
     }
-`);
+  `;
 
-/** Edits a person's shared display name; any component can mount this for the same person-id. */
-export class PersonEditor extends HTMLElement {
-  static get observedAttributes(): string[] {
-    return ['person-id'];
-  }
+  @property({ type: String, attribute: 'person-id' })
+  personId = '';
 
-  private _unsubscribe?: () => void;
+  @consume({ context: budgetContext, subscribe: true })
+  budget?: BudgetContextValue;
 
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-    this.shadowRoot!.adoptedStyleSheets = [sheet];
-  }
-
-  connectedCallback(): void {
-    this._unsubscribe = personStore.subscribe(() => this.render());
-    this.render();
-  }
-
-  disconnectedCallback(): void {
-    this._unsubscribe?.();
-  }
-
-  attributeChangedCallback(): void {
-    if (this.isConnected) {
-      this.render();
+  private _onInput(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    if (this.personId && this.budget) {
+      this.budget.renamePerson(this.personId, input.value);
     }
   }
 
-  render(): void {
-    const personId = this.getAttribute('person-id');
-    if (!personId) {
-      return;
-    }
-    const person = personStore.get(personId);
+  override render() {
+    const person = this.budget?.data.people.find((p) => p.id === this.personId);
     if (!person) {
-      return;
+      return nothing;
     }
-    const existingInput = this.shadowRoot?.querySelector('input');
-    // Skip rebuilding while this editor's own input is focused; it already shows the typed value.
-    if (existingInput && this.shadowRoot?.activeElement === existingInput) {
-      return;
-    }
-    this.shadowRoot!.innerHTML = '';
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = person.name;
-    input.setAttribute('aria-label', 'Person name');
-    input.addEventListener('input', () => personStore.rename(person.id, input.value));
-    this.shadowRoot!.appendChild(input);
+
+    return html`
+      <input
+        type="text"
+        .value=${person.name}
+        aria-label="Person name"
+        @input=${this._onInput}
+      />
+    `;
   }
 }
 
-customElements.define('person-editor', PersonEditor);
+declare global {
+  interface HTMLElementTagNameMap {
+    'person-editor': PersonEditor;
+  }
+}

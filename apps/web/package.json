@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@budget-planner/core": "*",
+    "@lit/context": "^1.1.6",
+    "@lit/task": "^1.0.3",
     "lit": "^3.3.3"
   },
   "devDependencies": {
