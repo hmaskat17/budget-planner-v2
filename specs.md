@@ -88,17 +88,24 @@ Note: It is possible for there to be a total of three different savings, one for
 
 Person A has 500 remaining money. Person B has 100 remaining money. Person A distributes 100 to shared savings and Person B 20. Person A allocates their personal savings to "New Phone: 20%" and "Clothes: 30%" leaving remaing 50% as unallocated. Person B does not allocate anything. In shared savings a "Car purchase" allocation is created with 100% as the value.
 
-## Proportional contributions
+## Contributions methods
 
-Proportional contribution means dividing shared costs based on each person's share of total income, so higher earners pay a larger percentage of expenses.
+Contributions is used to determine the splitting methods for the household.
 
 Should include the following:
 - Total household income
-- Each persons proportional contributions as rounded percentages. Calculation: Person's income / Total household income. Round by 2 decimals.
+- Each persons contributions as rounded percentages. Round by 2 decimals.
 - Total household expenses
 - Each person's share of expenses. Calculation: Peron's proportional contribution * total household expenses.
 - Each person's already paid expenses. This is the same as the total from a person's shared expenses total.
 - Each perons's balance to be settled. Calculation: Persons share of expenses - already paid expenses.
+
+Should give options for preferred contribution methods. The app defaults to proportional for two persons and pooled for one household (i.e. one person):
+- Equal: Both people pay the same amount towards shared expenses, regardless of their income.
+- Proportional: Each person pays a share of expenses corresponding to their share of the household's combined income.
+- Equal leftover: Shared expenses are divided so that both people have the same amount of personal money remaining afterwards.
+- Fully pooled: All income and shared expenses are treated as belonging to the household rather than to individual earners.
+- Custom split: The couple sets their own percentages.
 
 There should be an option to set the balance to be settled as a persons income or expense, depending on which it is.
 
