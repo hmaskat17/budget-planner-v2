@@ -184,7 +184,7 @@ export class BudgetPlannerApp extends LitElement {
     }
     .budget-columns {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
       gap: 20px;
     }
 
@@ -297,6 +297,11 @@ export class BudgetPlannerApp extends LitElement {
         gap: 4px;
         overflow-x: auto;
         scrollbar-width: none;
+        cursor: grab;
+        user-select: none;
+      }
+      nav ul.dragging {
+        cursor: grabbing;
       }
       .budget-section {
         padding: 20px 16px;
@@ -358,8 +363,60 @@ export class BudgetPlannerApp extends LitElement {
     this._activeSection = atBottom ? SECTIONS[SECTIONS.length - 1].id : current;
   }
 
+  private _navDragStartX = 0;
+  private _navDragStartScroll = 0;
+  private _navPointerDown = false;
+  private _navDragged = false;
+
+  private _onNavPointerDown = (e: PointerEvent): void => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    const ul = e.currentTarget as HTMLElement;
+    this._navPointerDown = true;
+    this._navDragged = false;
+    this._navDragStartX = e.clientX;
+    this._navDragStartScroll = ul.scrollLeft;
+  };
+
+  private _onNavPointerMove = (e: PointerEvent): void => {
+    if (!this._navPointerDown) return;
+    const ul = e.currentTarget as HTMLElement;
+    const dx = e.clientX - this._navDragStartX;
+    if (!this._navDragged && Math.abs(dx) > 5) {
+      this._navDragged = true;
+      ul.classList.add('dragging');
+      ul.setPointerCapture(e.pointerId);
+    }
+    if (this._navDragged) {
+      ul.scrollLeft = this._navDragStartScroll - dx;
+    }
+  };
+
+  private _onNavPointerEnd = (e: PointerEvent): void => {
+    this._navPointerDown = false;
+    (e.currentTarget as HTMLElement).classList.remove('dragging');
+    // Keep the flag until after the click event that follows a drag.
+    setTimeout(() => (this._navDragged = false));
+  };
+
+  private _onNavWheel = (e: WheelEvent): void => {
+    const ul = e.currentTarget as HTMLElement;
+    if (ul.scrollWidth <= ul.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    ul.scrollLeft += e.deltaY;
+  };
+
+  override updated(changed: Map<PropertyKey, unknown>): void {
+    if (!changed.has('_activeSection')) return;
+    const ul = this.renderRoot.querySelector<HTMLElement>('nav ul');
+    const link = ul?.querySelector<HTMLElement>('a[aria-current="true"]');
+    if (!ul || !link || ul.scrollWidth <= ul.clientWidth) return;
+    const offset = link.getBoundingClientRect().left - ul.getBoundingClientRect().left + ul.scrollLeft;
+    ul.scrollTo({ left: offset - (ul.clientWidth - link.offsetWidth) / 2, behavior: 'smooth' });
+  }
+
   private _goToSection(e: Event, id: string): void {
     e.preventDefault();
+    if (this._navDragged) return;
     this._activeSection = id;
     this.renderRoot.querySelector(`#${id}`)?.scrollIntoView({ block: 'start' });
   }
@@ -648,12 +705,19 @@ export class BudgetPlannerApp extends LitElement {
 
       <div class="layout">
         <nav aria-label="Sections">
-          <ul>
+          <ul
+            @pointerdown=${this._onNavPointerDown}
+            @pointermove=${this._onNavPointerMove}
+            @pointerup=${this._onNavPointerEnd}
+            @pointercancel=${this._onNavPointerEnd}
+            @wheel=${this._onNavWheel}
+          >
             ${SECTIONS.map(
               (s) => html`
                 <li>
                   <a
                     href="#${s.id}"
+                    draggable="false"
                     style="--nav-accent: ${s.accent}"
                     aria-current=${this._activeSection === s.id ? 'true' : 'false'}
                     @click=${(e: Event) => this._goToSection(e, s.id)}

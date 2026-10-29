@@ -125,20 +125,14 @@ export const baseStyles = css`
     gap: 8px;
   }
   .entry-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(72px, 100px) 32px;
     align-items: center;
-    flex-wrap: wrap;
     gap: 8px;
   }
-  .entry-row input[type='text'] {
-    flex: 1 1 140px;
-  }
-  .entry-row input[type='number'] {
-    flex: 0 1 110px;
-    width: 110px;
-  }
+  .entry-row input,
   .entry-row select {
-    flex: 0 1 130px;
+    width: 100%;
   }
 
   .stat-row,

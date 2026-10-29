@@ -16,6 +16,39 @@ export class BudgetSharedExpense extends LitElement {
   static override styles = [
     scenarioStyles,
     css`
+      :host {
+        container-type: inline-size;
+      }
+      .entry-row {
+        grid-template-columns: minmax(0, 1fr) minmax(72px, 100px) minmax(96px, 130px) 32px;
+      }
+      /* Two-line rows when the card is too narrow for four columns. */
+      @container (max-width: 440px) {
+        .entry-row {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--border-soft);
+        }
+        .entry-row:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+        .entry-row input[type='text'] {
+          grid-column: 1 / 3;
+        }
+        .entry-row .remove-entry-input {
+          grid-column: 3;
+          grid-row: 1;
+        }
+        .entry-row input[type='number'] {
+          grid-column: 1;
+          grid-row: 2;
+        }
+        .entry-row select {
+          grid-column: 2 / 4;
+          grid-row: 2;
+        }
+      }
       .person-subtotals {
         display: flex;
         flex-direction: column;
