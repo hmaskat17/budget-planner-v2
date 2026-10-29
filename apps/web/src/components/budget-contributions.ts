@@ -229,14 +229,14 @@ export class BudgetContributions extends LitElement {
                   <span>${formatAmount(income)} €</span>
                 </div>
                 <div class="metric-row">
-                  <span>${CONTRIBUTION_LABELS[contributionSettings.method]}</span>
-                  <span>${formatAmount(propContributionPercent)} %</span>
-                </div>
-                ${contributionSettings.method === 'custom'
-                  ? html`<div class="metric-row">
-                      <label for="custom-percent-${person.id}">Custom split</label>
-                      <span>
-                        <input
+                  ${contributionSettings.method === 'custom'
+                    ? html`<label for="custom-percent-${person.id}">
+                        ${CONTRIBUTION_LABELS[contributionSettings.method]}
+                      </label>`
+                    : html`<span>${CONTRIBUTION_LABELS[contributionSettings.method]}</span>`}
+                  <span>
+                    ${contributionSettings.method === 'custom'
+                      ? html`<input
                           id="custom-percent-${person.id}"
                           class="custom-percent"
                           type="number"
@@ -250,11 +250,10 @@ export class BudgetContributions extends LitElement {
                               person.id,
                               (event.currentTarget as HTMLInputElement).valueAsNumber
                             )}
-                        />
-                        %
-                      </span>
-                    </div>`
-                  : ''}
+                        /> %`
+                      : html`${formatAmount(propContributionPercent)} %`}
+                  </span>
+                </div>
                 <div class="metric-row">
                   <span>Share of expenses</span>
                   <span>${formatAmount(expenseShare)} €</span>

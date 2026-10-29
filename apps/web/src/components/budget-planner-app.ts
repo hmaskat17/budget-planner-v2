@@ -824,7 +824,7 @@ export class BudgetPlannerApp extends LitElement {
             </div>
             <p id="household-total">
               <span>Household income</span>
-              <strong id="household-total-amount">${formatAmount(totals.income)} €</strong>
+              <strong id="household-total-amount">${formatAmount(totals.baseIncome)} €</strong>
             </p>
           `)}
 

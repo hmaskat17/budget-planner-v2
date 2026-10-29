@@ -58,6 +58,7 @@ describe('critical budgeting workflows', () => {
       .should('contain.text', 'Remove settlement from income and personal expenses');
     component('budget-income', 0).find('.entry-row.settlement').should('exist');
     component('budget-personal-expense', 1).find('.entry-row.settlement').should('exist');
+    app().find('#household-total-amount').should('have.text', '4500.00 €');
 
     component('budget-contributions').find('.toggle-settlement').click();
     component('budget-contributions').find('.person-card').eq(0)
@@ -108,6 +109,10 @@ describe('critical budgeting workflows', () => {
     component('budget-contributions').find('#contribution-method').select('equal-leftover');
     component('budget-contributions').find('.person-card').eq(0).should('contain.text', '1200.00 €');
     component('budget-contributions').find('#contribution-method').select('custom');
+    component('budget-contributions').find('.person-card').eq(0).should('contain.text', 'Custom contribution')
+      .and('not.contain.text', 'Custom split');
+    component('budget-contributions').find('.person-card').eq(0).find('input[aria-label="Person 1 custom contribution percentage"]')
+      .should('have.length', 1);
     component('budget-contributions').find('input[aria-label="Person 1 custom contribution percentage"]')
       .clear().type('70.01').blur();
     component('budget-contributions').find('.person-card').eq(0).should('contain.text', '630.09 €');
