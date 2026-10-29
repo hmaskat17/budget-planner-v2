@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "e2e": "start-server-and-test \"vite --host localhost\" http://localhost:5173 cypress:run",
+    "cypress:run": "cypress run",
+    "cypress:open": "cypress open"
   },
   "dependencies": {
     "@budget-planner/core": "*",
@@ -16,6 +19,8 @@
     "lit": "^3.3.3"
   },
   "devDependencies": {
+    "cypress": "^16.2.1",
+    "start-server-and-test": "^3.0.13",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }
