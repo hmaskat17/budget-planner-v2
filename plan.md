@@ -26,7 +26,7 @@
 - DONE! Web: Add Lit and migrate the current UI. Use Lit templates and styles for presentation; use @lit/context for state shared within the web component tree, not as the cross-platform domain layer and @lit/task for async data if needed.
 
 ### Phase 2 - Product design decisions
-- Web: Explore 3-4 low-fidelity layout directions, choose one against usability goals, then implement the redesign.
+- DONE! Web: Explore 3-4 low-fidelity layout directions, choose one against usability goals, then implement the redesign.
 
 ### Phase 3 - Additional web functionality
 - Web: Add Cypress end-to-end tests for the critical budgeting workflows. Keep domain unit tests in the core package; add web component tests where they provide useful coverage.
