@@ -1,5 +1,6 @@
 import type {
   Entry,
+  ContributionMethod,
   Person,
   PersonId,
   PersonSavingsData,
@@ -43,7 +44,7 @@ export interface RemainingBalances {
   householdTotal: number;
 }
 
-export interface ProportionalContributionRow {
+export interface ContributionRow {
   person: Person;
   income: number;
   percent: number;
@@ -52,11 +53,15 @@ export interface ProportionalContributionRow {
   balance: number;
 }
 
-export interface ProportionalContributions {
-  rows: ProportionalContributionRow[];
+export type ProportionalContributionRow = ContributionRow;
+
+export interface Contributions {
+  rows: ContributionRow[];
   totalIncome: number;
   totalSharedExpenses: number;
 }
+
+export type ProportionalContributions = Contributions;
 
 export interface SavingsAllocation {
   item: SavingsItem;
@@ -162,6 +167,17 @@ export function calculateProportionalContributions(
   incomeByPerson: Readonly<Record<PersonId, ScenarioState>>,
   sharedExpenses: ScenarioState<SharedExpenseEntry> | undefined
 ): ProportionalContributions {
+  return calculateContributions(people, incomeByPerson, {}, sharedExpenses, 'proportional');
+}
+
+export function calculateContributions(
+  people: readonly Person[],
+  incomeByPerson: Readonly<Record<PersonId, ScenarioState>>,
+  personalExpensesByPerson: Readonly<Record<PersonId, ScenarioState>>,
+  sharedExpenses: ScenarioState<SharedExpenseEntry> | undefined,
+  method: ContributionMethod,
+  customPercentByPerson: Readonly<Record<PersonId, number>> = {}
+): Contributions {
   const incomes = people.map((person) => ({
     person,
     income: scenarioTotal(getActiveScenario(incomeByPerson[person.id]), true)
@@ -169,9 +185,39 @@ export function calculateProportionalContributions(
   const totalIncome = incomes.reduce((total, item) => total + item.income, 0);
   const sharedScenario = getActiveScenario(sharedExpenses);
   const totalSharedExpenses = scenarioTotal(sharedScenario);
-  const rows = incomes.map(({ person, income }): ProportionalContributionRow => {
-    const percent = totalIncome > 0 ? income / totalIncome * 100 : people.length ? 100 / people.length : 0;
-    const share = totalSharedExpenses * percent / 100;
+  if (method === 'fully-pooled') {
+    return { rows: [], totalIncome, totalSharedExpenses };
+  }
+
+  const totalDisposableIncome = incomes.reduce((total, { person, income }) => {
+    return total + income - scenarioTotal(getActiveScenario(personalExpensesByPerson[person.id]), true);
+  }, 0);
+  const equalLeftover = people.length
+    ? (totalDisposableIncome - totalSharedExpenses) / people.length
+    : 0;
+  const equalPercent = people.length ? 100 / people.length : 0;
+  const rows = incomes.map(({ person, income }): ContributionRow => {
+    const personalExpenses = scenarioTotal(getActiveScenario(personalExpensesByPerson[person.id]), true);
+    let percent: number;
+    let share: number;
+    switch (method) {
+      case 'equal':
+        percent = equalPercent;
+        share = totalSharedExpenses * percent / 100;
+        break;
+      case 'equal-leftover':
+        share = income - personalExpenses - equalLeftover;
+        percent = totalSharedExpenses !== 0 ? share / totalSharedExpenses * 100 : equalPercent;
+        break;
+      case 'custom':
+        percent = customPercentByPerson[person.id] ?? 0;
+        share = totalSharedExpenses * percent / 100;
+        break;
+      case 'proportional':
+        percent = totalIncome > 0 ? income / totalIncome * 100 : equalPercent;
+        share = totalSharedExpenses * percent / 100;
+        break;
+    }
     const paid = sharedScenario
       ? entriesTotal(sharedScenario.entries.filter((entry) => entry.personId === person.id))
       : 0;

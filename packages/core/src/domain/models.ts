@@ -41,6 +41,13 @@ export interface SharedSavingsData {
   items: SavingsItem[];
 }
 
+export type ContributionMethod = 'equal' | 'proportional' | 'equal-leftover' | 'fully-pooled' | 'custom';
+
+export interface ContributionSettings {
+  method: ContributionMethod;
+  customPercentByPerson: Record<PersonId, number>;
+}
+
 export interface BudgetData {
   people: Person[];
   incomeByPerson: Record<PersonId, ScenarioState>;
@@ -49,6 +56,7 @@ export interface BudgetData {
   assetsByPerson: Record<PersonId, Entry[]>;
   personalSavingsByPerson: Record<PersonId, PersonSavingsData>;
   sharedSavings: SharedSavingsData;
+  contributionSettings: ContributionSettings;
 }
 
 export interface ValidationIssue {

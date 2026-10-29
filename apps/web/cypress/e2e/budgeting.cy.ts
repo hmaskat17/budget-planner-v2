@@ -44,23 +44,23 @@ describe('critical budgeting workflows', () => {
       .and('contain.text', '1300.00 €')
       .and('contain.text', '2900.00 €');
 
-    component('budget-proportional-contributions').find('.person-card').eq(0)
+    component('budget-contributions').find('.person-card').eq(0)
       .should('contain.text', '66.67 %')
       .and('contain.text', '600.00 €')
       .and('contain.text', 'Owed 300.00 €');
-    component('budget-proportional-contributions').find('.person-card').eq(1)
+    component('budget-contributions').find('.person-card').eq(1)
       .should('contain.text', '33.33 %')
       .and('contain.text', '300.00 €')
       .and('contain.text', 'Owes 300.00 €');
 
-    component('budget-proportional-contributions').find('.toggle-settlement').click();
-    component('budget-proportional-contributions').find('.toggle-settlement')
+    component('budget-contributions').find('.toggle-settlement').click();
+    component('budget-contributions').find('.toggle-settlement')
       .should('contain.text', 'Remove settlement from income and personal expenses');
     component('budget-income', 0).find('.entry-row.settlement').should('exist');
     component('budget-personal-expense', 1).find('.entry-row.settlement').should('exist');
 
-    component('budget-proportional-contributions').find('.toggle-settlement').click();
-    component('budget-proportional-contributions').find('.person-card').eq(0)
+    component('budget-contributions').find('.toggle-settlement').click();
+    component('budget-contributions').find('.person-card').eq(0)
       .should('contain.text', 'Owed 300.00 €');
     component('budget-income', 0).find('.entry-row.settlement').should('not.exist');
     component('budget-personal-expense', 1).find('.entry-row.settlement').should('not.exist');
@@ -85,5 +85,38 @@ describe('critical budgeting workflows', () => {
     component('budget-income').find('.scenario-chip-label').should('contain.text', 'Raise');
     component('budget-income').find('input[placeholder="Amount"]').should('have.value', '3000');
     app().find('#household-total-amount').should('have.text', '3000.00 €');
+  });
+
+  it('switches contribution methods, edits a custom split, and persists the selection', () => {
+    app().find('#add-person').click();
+    component('budget-income', 0).find('input[placeholder="Income source"]').type('Salary');
+    component('budget-income', 0).find('input[placeholder="Amount"]').clear().type('3000');
+    component('budget-income', 1).find('input[placeholder="Income source"]').type('Salary');
+    component('budget-income', 1).find('input[placeholder="Amount"]').clear().type('1500');
+    component('budget-shared-expense').find('.add-entry-button').click();
+    component('budget-shared-expense').find('input[placeholder="Expense source"]').type('Rent');
+    component('budget-shared-expense').find('input[placeholder="Amount"]').clear().type('900');
+
+    component('budget-contributions').find('#contribution-method').should('have.value', 'proportional');
+    component('budget-contributions').find('.toggle-settlement').click();
+    component('budget-income', 0).find('.entry-row.settlement').should('exist');
+    component('budget-personal-expense', 1).find('.entry-row.settlement').should('exist');
+    component('budget-contributions').find('#contribution-method').select('equal');
+    component('budget-income', 0).find('.entry-row.settlement').should('not.exist');
+    component('budget-personal-expense', 1).find('.entry-row.settlement').should('not.exist');
+    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '450.00 €');
+    component('budget-contributions').find('#contribution-method').select('equal-leftover');
+    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '1200.00 €');
+    component('budget-contributions').find('#contribution-method').select('custom');
+    component('budget-contributions').find('input[aria-label="Person 1 custom contribution percentage"]')
+      .clear().type('70.01').blur();
+    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '630.09 €');
+    component('budget-contributions').find('.person-card').eq(1).should('contain.text', '269.91 €');
+
+    component('budget-contributions').find('#contribution-method').select('fully-pooled');
+    component('budget-contributions').find('.pooled-note').should('be.visible');
+    component('budget-contributions').find('.toggle-settlement').should('not.exist');
+    cy.reload();
+    component('budget-contributions').find('#contribution-method').should('have.value', 'fully-pooled');
   });
 });

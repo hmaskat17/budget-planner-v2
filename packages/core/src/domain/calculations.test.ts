@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calculateContributions,
   calculateHouseholdTotals,
   calculateProportionalContributions,
   calculateRemainingBalances,
@@ -97,6 +98,52 @@ describe('household calculations', () => {
       state<SharedExpenseEntry>([{ name: 'Rent', amount: 100, personId: 'person-1' }])
     );
     expect(noIncome.rows.map(({ percent, share }) => [percent, share])).toEqual([[50, 50], [50, 50]]);
+  });
+
+  it('calculates equal, equal-leftover, custom, and pooled contributions', () => {
+    const incomeByPerson = {
+      'person-1': state([{ name: 'Salary', amount: 3000 }, { name: 'Settlement', amount: 100, isSettlement: true }]),
+      'person-2': state([{ name: 'Salary', amount: 1500 }])
+    };
+    const personalExpensesByPerson = {
+      'person-1': state([{ name: 'Phone', amount: 500 }]),
+      'person-2': state([{ name: 'Transport', amount: 200 }])
+    };
+    const sharedExpenses = state<SharedExpenseEntry>([
+      { name: 'Rent', amount: 900, personId: 'person-1' }
+    ]);
+
+    const equal = calculateContributions(people, incomeByPerson, personalExpensesByPerson, sharedExpenses, 'equal');
+    expect(equal.rows.map(({ percent, share, balance }) => [percent, share, balance]))
+      .toEqual([[50, 450, -450], [50, 450, 450]]);
+
+    const equalLeftover = calculateContributions(
+      people,
+      incomeByPerson,
+      personalExpensesByPerson,
+      sharedExpenses,
+      'equal-leftover'
+    );
+    expect(equalLeftover.rows.map(({ share, balance }) => [share, balance])).toEqual([[1050, 150], [-150, -150]]);
+
+    const custom = calculateContributions(
+      people,
+      incomeByPerson,
+      personalExpensesByPerson,
+      sharedExpenses,
+      'custom',
+      { 'person-1': 70, 'person-2': 30 }
+    );
+    expect(custom.rows.map(({ percent, share }) => [percent, share])).toEqual([[70, 630], [30, 270]]);
+
+    const pooled = calculateContributions(
+      people,
+      incomeByPerson,
+      personalExpensesByPerson,
+      sharedExpenses,
+      'fully-pooled'
+    );
+    expect(pooled).toEqual({ rows: [], totalIncome: 4500, totalSharedExpenses: 900 });
   });
 });
 

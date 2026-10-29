@@ -1,5 +1,6 @@
 import type {
   BudgetData,
+  ContributionSettings,
   Entry,
   Person,
   PersonSavingsData,
@@ -16,6 +17,7 @@ const SHARED_EXPENSE_STORAGE_KEY = 'budget-planner-shared-expense';
 const PERSONAL_SAVINGS_STORAGE_KEY = 'budget-planner-personal-savings';
 const SHARED_SAVINGS_STORAGE_KEY = 'budget-planner-shared-savings';
 const UNALLOCATED_ASSETS_STORAGE_KEY = 'budget-planner-unallocated-assets';
+const CONTRIBUTION_SETTINGS_STORAGE_KEY = 'budget-planner-contribution-settings';
 
 function loadJson<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key);
@@ -60,6 +62,13 @@ export const localStorageAdapter = {
     const assetsByPerson = loadJson<Record<string, Entry[]>>(UNALLOCATED_ASSETS_STORAGE_KEY, {});
     const personalSavingsByPerson = loadJson<Record<string, PersonSavingsData>>(PERSONAL_SAVINGS_STORAGE_KEY, {});
     const sharedSavings = loadJson<SharedSavingsData>(SHARED_SAVINGS_STORAGE_KEY, { items: [] });
+    const contributionSettings = loadJson<ContributionSettings>(
+      CONTRIBUTION_SETTINGS_STORAGE_KEY,
+      {
+        method: 'proportional',
+        customPercentByPerson: Object.fromEntries(people.map(({ id }) => [id, 100 / people.length]))
+      }
+    );
 
     // Ensure all people have baseline scenarios in memory
     people.forEach((p) => {
@@ -75,7 +84,15 @@ export const localStorageAdapter = {
       if (!personalSavingsByPerson[p.id]) {
         personalSavingsByPerson[p.id] = { sharedContributionPercent: 0, items: [] };
       }
+      if (contributionSettings.customPercentByPerson[p.id] === undefined) {
+        contributionSettings.customPercentByPerson[p.id] = 100 / people.length;
+      }
     });
+    for (const personId of Object.keys(contributionSettings.customPercentByPerson)) {
+      if (!people.some(({ id }) => id === personId)) {
+        delete contributionSettings.customPercentByPerson[personId];
+      }
+    }
 
     return {
       people,
@@ -84,7 +101,8 @@ export const localStorageAdapter = {
       sharedExpenses,
       assetsByPerson,
       personalSavingsByPerson,
-      sharedSavings
+      sharedSavings,
+      contributionSettings
     };
   },
 
@@ -116,6 +134,10 @@ export const localStorageAdapter = {
     localStorage.setItem(SHARED_SAVINGS_STORAGE_KEY, JSON.stringify(sharedSavings));
   },
 
+  saveContributionSettings(settings: ContributionSettings): void {
+    localStorage.setItem(CONTRIBUTION_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  },
+
   saveAll(data: BudgetData): void {
     this.savePeople(data.people);
     this.saveIncome(data.incomeByPerson);
@@ -124,5 +146,6 @@ export const localStorageAdapter = {
     this.saveAssets(data.assetsByPerson);
     this.savePersonalSavings(data.personalSavingsByPerson);
     this.saveSharedSavings(data.sharedSavings);
+    this.saveContributionSettings(data.contributionSettings);
   }
 };

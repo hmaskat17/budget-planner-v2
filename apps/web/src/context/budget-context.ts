@@ -1,6 +1,7 @@
 import { createContext } from '@lit/context';
 import type {
   BudgetData,
+  ContributionMethod,
   Entry,
   PersonSavingsData,
   ScenarioState,
@@ -20,6 +21,8 @@ export interface BudgetContextValue {
   updateAssets: (personId: string, entries: Entry[]) => void;
   updatePersonalSavings: (personId: string, savings: PersonSavingsData) => void;
   updateSharedSavings: (savings: SharedSavingsData) => void;
+  setContributionMethod: (method: ContributionMethod) => void;
+  setCustomContributionPercent: (personId: string, percent: number) => void;
   applySettlements: () => void;
   removeSettlements: () => void;
   isSettlementApplied: () => boolean;

@@ -88,9 +88,16 @@ describe('scenario validation and rules', () => {
       sharedExpenses: scenarioState([{ name: 'Rent', amount: 30, personId: 'unknown' }]),
       assetsByPerson: { [onePerson.id]: [] },
       personalSavingsByPerson: { [onePerson.id]: { sharedContributionPercent: 0, items: [] } },
-      sharedSavings: { items: [] }
+      sharedSavings: { items: [] },
+      contributionSettings: { method: 'proportional', customPercentByPerson: { [onePerson.id]: 100 } }
     };
     expect(validateBudgetData(budget).map(({ code }) => code)).toContain('unknown-person');
+    expect(
+      validateBudgetData({
+        ...budget,
+        contributionSettings: { method: 'custom', customPercentByPerson: { [onePerson.id]: 75 } }
+      }).map(({ code }) => code)
+    ).toContain('invalid-total');
   });
 
   it('does not remove the final required entry when a minimum is configured', () => {

@@ -169,6 +169,59 @@ function validateSavingsItems(value: unknown, path: string): ValidationIssue[] {
   return value.flatMap((item, index) => validateSavingsItem(item, `${path}[${index}]`));
 }
 
+function validateContributionSettings(value: unknown, people: readonly Person[]): ValidationIssue[] {
+  const path = 'contributionSettings';
+  if (!isRecord(value)) {
+    return [{ path, code: 'invalid-type', message: 'Contribution settings must be an object.' }];
+  }
+
+  const issues: ValidationIssue[] = [];
+  const methodIsValid = value.method === 'equal' || value.method === 'proportional' ||
+    value.method === 'equal-leftover' || value.method === 'fully-pooled' || value.method === 'custom';
+  if (!methodIsValid) {
+    issues.push({ path: `${path}.method`, code: 'invalid-method', message: 'Contribution method is not supported.' });
+  }
+  if (!isRecord(value.customPercentByPerson)) {
+    issues.push({
+      path: `${path}.customPercentByPerson`,
+      code: 'invalid-type',
+      message: 'Custom contribution percentages must be person-keyed.'
+    });
+    return issues;
+  }
+
+  let totalPercent = 0;
+  for (const person of people) {
+    const percent = value.customPercentByPerson[person.id];
+    if (typeof percent !== 'number' || !Number.isFinite(percent) || percent < 0 || percent > 100) {
+      issues.push({
+        path: `${path}.customPercentByPerson.${person.id}`,
+        code: 'invalid-percent',
+        message: 'Custom contribution percentage must be between 0 and 100.'
+      });
+    } else {
+      totalPercent += percent;
+    }
+  }
+  for (const personId of Object.keys(value.customPercentByPerson)) {
+    if (!people.some((person) => person.id === personId)) {
+      issues.push({
+        path: `${path}.customPercentByPerson.${personId}`,
+        code: 'unknown-person',
+        message: 'Custom contribution percentage must refer to a household person.'
+      });
+    }
+  }
+  if (Math.abs(totalPercent - 100) > 0.01) {
+    issues.push({
+      path: `${path}.customPercentByPerson`,
+      code: 'invalid-total',
+      message: 'Custom contribution percentages must total 100.'
+    });
+  }
+  return issues;
+}
+
 export function validatePersonSavingsData(value: unknown, path = 'personSavings'): ValidationIssue[] {
   if (!isRecord(value)) {
     return [{ path, code: 'invalid-type', message: 'Personal savings data must be an object.' }];
@@ -192,9 +245,13 @@ export function validateBudgetData(value: unknown): ValidationIssue[] {
   }
 
   const issues = validatePeople(value.people);
+  const validPeople = Array.isArray(value.people)
+    ? value.people.filter((person): person is Person => validatePerson(person).length === 0)
+    : [];
   issues.push(...validateScenarioMap(value.incomeByPerson, 'incomeByPerson'));
   issues.push(...validateScenarioMap(value.personalExpensesByPerson, 'personalExpensesByPerson'));
   issues.push(...validateScenarioState(value.sharedExpenses, 'sharedExpenses'));
+  issues.push(...validateContributionSettings(value.contributionSettings, validPeople));
 
   if (!isRecord(value.assetsByPerson)) {
     issues.push({ path: 'assetsByPerson', code: 'invalid-type', message: 'Assets must be a person-keyed object.' });
@@ -222,9 +279,6 @@ export function validateBudgetData(value: unknown): ValidationIssue[] {
     issues.push(...validateSavingsItems(value.sharedSavings.items, 'sharedSavings.items'));
   }
 
-  const validPeople = Array.isArray(value.people)
-    ? value.people.filter((person): person is Person => validatePerson(person).length === 0)
-    : [];
   const personIds = new Set(validPeople.map((person) => person.id));
   if (isRecord(value.sharedExpenses) && Array.isArray(value.sharedExpenses.scenarios)) {
     value.sharedExpenses.scenarios.forEach((scenario, scenarioIndex) => {

@@ -4,6 +4,7 @@ import { provide } from '@lit/context';
 import { Task } from '@lit/task';
 import type {
   BudgetData,
+  ContributionMethod,
   Entry,
   PersonSavingsData,
   ScenarioState,
@@ -13,8 +14,8 @@ import type {
 import {
   addPerson as coreAddPerson,
   applySettlementAdjustments,
+  calculateContributions,
   calculateHouseholdTotals,
-  calculateProportionalContributions,
   canAddPerson as coreCanAddPerson,
   createDefaultScenario,
   createId,
@@ -34,7 +35,7 @@ import './budget-personal-expense.ts';
 import './budget-shared-expense.ts';
 import './budget-remaining-balance.ts';
 import './budget-savings.ts';
-import './budget-proportional-contributions.ts';
+import './budget-contributions.ts';
 import './budget-unallocated-assets.ts';
 
 /** Page sections in display order; drives both the navigation and section headers. */
@@ -320,7 +321,8 @@ export class BudgetPlannerApp extends LitElement {
     },
     assetsByPerson: {},
     personalSavingsByPerson: {},
-    sharedSavings: { items: [] }
+    sharedSavings: { items: [] },
+    contributionSettings: { method: 'proportional', customPercentByPerson: { 'person-1': 100 } }
   };
 
   @provide({ context: budgetContext })
@@ -451,6 +453,9 @@ export class BudgetPlannerApp extends LitElement {
         this._updatePersonalSavings(personId, savings),
       updateSharedSavings: (savings: SharedSavingsData) =>
         this._updateSharedSavings(savings),
+      setContributionMethod: (method: ContributionMethod) => this._setContributionMethod(method),
+      setCustomContributionPercent: (personId: string, percent: number) =>
+        this._setCustomContributionPercent(personId, percent),
       applySettlements: () => this._applySettlements(),
       removeSettlements: () => this._removeSettlements(),
       isSettlementApplied: () => this._isSettlementApplied()
@@ -476,6 +481,10 @@ export class BudgetPlannerApp extends LitElement {
       this._budgetData = {
         ...this._budgetData,
         people: result.people,
+        contributionSettings: {
+          ...this._budgetData.contributionSettings,
+          customPercentByPerson: Object.fromEntries(result.people.map(({ id }) => [id, 100 / result.people.length]))
+        },
         incomeByPerson: {
           ...this._budgetData.incomeByPerson,
           [newPerson.id]: {
@@ -529,6 +538,10 @@ export class BudgetPlannerApp extends LitElement {
         personalExpensesByPerson: restExpense,
         assetsByPerson: restAssets,
         personalSavingsByPerson: restSavings,
+        contributionSettings: {
+          ...this._budgetData.contributionSettings,
+          customPercentByPerson: { [result.people[0].id]: 100 }
+        },
         sharedExpenses: {
           ...this._budgetData.sharedExpenses,
           scenarios: updatedSharedScenarios
@@ -618,6 +631,40 @@ export class BudgetPlannerApp extends LitElement {
     this._updateContextValue();
   }
 
+  private _setContributionMethod(method: ContributionMethod): void {
+    if (this._isSettlementApplied()) {
+      this._removeSettlements();
+    }
+    this._budgetData = {
+      ...this._budgetData,
+      contributionSettings: { ...this._budgetData.contributionSettings, method }
+    };
+    localStorageAdapter.saveContributionSettings(this._budgetData.contributionSettings);
+    this._updateContextValue();
+  }
+
+  private _setCustomContributionPercent(personId: string, percent: number): void {
+    if (!Number.isFinite(percent) || !this._budgetData.people.some(({ id }) => id === personId)) {
+      return;
+    }
+    const boundedPercent = Math.round(Math.max(0, Math.min(100, percent)) * 100) / 100;
+    const customPercentByPerson = this._budgetData.people.length === 1
+      ? { [personId]: 100 }
+      : Object.fromEntries(this._budgetData.people.map(({ id }) => [
+          id,
+          id === personId ? boundedPercent : Math.round((100 - boundedPercent) * 100) / 100
+        ]));
+    if (this._isSettlementApplied()) {
+      this._removeSettlements();
+    }
+    this._budgetData = {
+      ...this._budgetData,
+      contributionSettings: { ...this._budgetData.contributionSettings, customPercentByPerson }
+    };
+    localStorageAdapter.saveContributionSettings(this._budgetData.contributionSettings);
+    this._updateContextValue();
+  }
+
   private _isSettlementApplied(): boolean {
     return this._budgetData.people.some((person) => {
       const incState = this._budgetData.incomeByPerson[person.id];
@@ -632,10 +679,13 @@ export class BudgetPlannerApp extends LitElement {
   }
 
   private _applySettlements(): void {
-    const { rows } = calculateProportionalContributions(
+    const { rows } = calculateContributions(
       this._budgetData.people,
       this._budgetData.incomeByPerson,
-      this._budgetData.sharedExpenses
+      this._budgetData.personalExpensesByPerson,
+      this._budgetData.sharedExpenses,
+      this._budgetData.contributionSettings.method,
+      this._budgetData.contributionSettings.customPercentByPerson
     );
 
     const updated = applySettlementAdjustments(
@@ -803,7 +853,7 @@ export class BudgetPlannerApp extends LitElement {
           ${this._section('savings-section', html`<budget-savings></budget-savings>`)}
 
           ${this._section('proportional-contributions-section', html`
-            <budget-proportional-contributions></budget-proportional-contributions>
+            <budget-contributions></budget-contributions>
           `)}
 
           ${this._section('unallocated-assets-section', html`

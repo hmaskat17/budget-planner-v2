@@ -1,17 +1,33 @@
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { consume } from '@lit/context';
-import { calculateProportionalContributions, formatAmount } from '@budget-planner/core';
+import type { ContributionMethod } from '@budget-planner/core';
+import { calculateContributions, formatAmount } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { baseStyles } from '../ui/shared-styles.ts';
 import { icon } from '../ui/icons.ts';
 
+const CONTRIBUTION_METHODS: { value: ContributionMethod; label: string }[] = [
+  { value: 'equal', label: 'Equal' },
+  { value: 'proportional', label: 'Proportional' },
+  { value: 'equal-leftover', label: 'Equal leftover' },
+  { value: 'fully-pooled', label: 'Fully pooled' },
+  { value: 'custom', label: 'Custom split' }
+];
+
+const CONTRIBUTION_LABELS: Record<ContributionMethod, string> = {
+  equal: 'Equal contribution',
+  proportional: 'Proportional contribution',
+  'equal-leftover': 'Contribution for equal leftover',
+  'fully-pooled': 'Household contribution',
+  custom: 'Custom contribution'
+};
+
 /**
- * Calculates proportional shared cost contributions based on each person's income share.
- * Offers options to set the settled balance directly into a person's income or personal expenses.
+ * Calculates household shared-expense contributions using the selected contribution method.
  */
-@customElement('budget-proportional-contributions')
-export class BudgetProportionalContributions extends LitElement {
+@customElement('budget-contributions')
+export class BudgetContributions extends LitElement {
   static override styles = [
     baseStyles,
     css`
@@ -24,6 +40,29 @@ export class BudgetProportionalContributions extends LitElement {
         background: color-mix(in srgb, var(--accent) 6%, var(--surface));
         border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
         border-radius: var(--radius);
+      }
+      .method-picker {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .method-picker label {
+        font-weight: 600;
+      }
+      .method-picker select {
+        width: min(100%, 280px);
+      }
+      .pooled-note {
+        padding: 18px;
+        color: var(--muted);
+        background: var(--surface-2);
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius);
+      }
+      .custom-percent {
+        width: 96px;
       }
       .summary-stat {
         flex: 1 1 200px;
@@ -114,17 +153,45 @@ export class BudgetProportionalContributions extends LitElement {
       return html``;
     }
 
-    const { people, incomeByPerson, sharedExpenses } = this.budget.data;
-    const { rows, totalIncome, totalSharedExpenses } = calculateProportionalContributions(
+    const {
       people,
       incomeByPerson,
-      sharedExpenses
+      personalExpensesByPerson,
+      sharedExpenses,
+      contributionSettings
+    } = this.budget.data;
+    const { rows, totalIncome, totalSharedExpenses } = calculateContributions(
+      people,
+      incomeByPerson,
+      personalExpensesByPerson,
+      sharedExpenses,
+      contributionSettings.method,
+      contributionSettings.customPercentByPerson
     );
 
     const applied = this.budget.isSettlementApplied();
     const hasBalance = rows.some(({ balance }) => Math.abs(balance) > 0.005);
-
     return html`
+      <div class="method-picker">
+        <label for="contribution-method">Contribution method</label>
+        <select
+          id="contribution-method"
+          @change=${(event: Event) => {
+            const value = (event.currentTarget as HTMLSelectElement).value;
+            const method = CONTRIBUTION_METHODS.find(({ value: optionValue }) => optionValue === value)?.value;
+            if (method) {
+              this.budget?.setContributionMethod(method);
+            }
+          }}
+        >
+          ${CONTRIBUTION_METHODS.map(
+            ({ value, label }) => html`
+              <option value=${value} .selected=${contributionSettings.method === value}>${label}</option>
+            `
+          )}
+        </select>
+      </div>
+
       <div class="household-summary">
         <div class="summary-stat">
           <span>Total household income</span>
@@ -136,7 +203,11 @@ export class BudgetProportionalContributions extends LitElement {
         </div>
       </div>
 
-      <div class="people-columns">
+      ${contributionSettings.method === 'fully-pooled'
+        ? html`<p class="pooled-note">
+            Income and shared expenses belong to the household as a whole, so there is no individual balance to settle.
+          </p>`
+        : html`<div class="people-columns">
         ${rows.map(
           ({ person, income, percent: propContributionPercent, share: expenseShare, paid: alreadyPaid, balance }) => {
             let badgeClass = 'status-badge settled';
@@ -158,9 +229,32 @@ export class BudgetProportionalContributions extends LitElement {
                   <span>${formatAmount(income)} €</span>
                 </div>
                 <div class="metric-row">
-                  <span>Proportional contribution</span>
+                  <span>${CONTRIBUTION_LABELS[contributionSettings.method]}</span>
                   <span>${formatAmount(propContributionPercent)} %</span>
                 </div>
+                ${contributionSettings.method === 'custom'
+                  ? html`<div class="metric-row">
+                      <label for="custom-percent-${person.id}">Custom split</label>
+                      <span>
+                        <input
+                          id="custom-percent-${person.id}"
+                          class="custom-percent"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          .value=${String(contributionSettings.customPercentByPerson[person.id] ?? 0)}
+                          aria-label="${person.name} custom contribution percentage"
+                          @change=${(event: Event) =>
+                            this.budget?.setCustomContributionPercent(
+                              person.id,
+                              (event.currentTarget as HTMLInputElement).valueAsNumber
+                            )}
+                        />
+                        %
+                      </span>
+                    </div>`
+                  : ''}
                 <div class="metric-row">
                   <span>Share of expenses</span>
                   <span>${formatAmount(expenseShare)} €</span>
@@ -180,9 +274,10 @@ export class BudgetProportionalContributions extends LitElement {
             `;
           }
         )}
-      </div>
+      </div>`}
 
-      <button
+      ${contributionSettings.method !== 'fully-pooled'
+        ? html`<button
         type="button"
         class="apply-btn toggle-settlement ${applied ? 'applied' : ''}"
         ?disabled=${!applied && !hasBalance}
@@ -197,13 +292,14 @@ export class BudgetProportionalContributions extends LitElement {
         ${applied ? icon('x', 16) : icon('arrowsLeftRight', 16)}${applied
           ? 'Remove settlement from income and personal expenses'
           : 'Add settlement to income and personal expenses'}
-      </button>
+      </button>`
+        : ''}
     `;
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'budget-proportional-contributions': BudgetProportionalContributions;
+    'budget-contributions': BudgetContributions;
   }
 }
