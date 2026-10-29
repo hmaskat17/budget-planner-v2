@@ -92,7 +92,7 @@ Person A has 500 remaining money. Person B has 100 remaining money. Person A dis
 
 Contributions is used to determine the splitting methods for the household.
 
-Should include the following:
+Should include the following - depending on contribution type, add new appropriate labels or remove some:
 - Total household income
 - Each persons contributions as rounded percentages. Round by 2 decimals.
 - Total household expenses
@@ -100,7 +100,7 @@ Should include the following:
 - Each person's already paid expenses. This is the same as the total from a person's shared expenses total.
 - Each perons's balance to be settled. Calculation: Persons share of expenses - already paid expenses.
 
-Should give options for preferred contribution methods. The app defaults to proportional for two persons and pooled for one household (i.e. one person):
+Should give options for preferred contribution methods. The app defaults to proportional.
 - Equal: Both people pay the same amount towards shared expenses, regardless of their income.
 - Proportional: Each person pays a share of expenses corresponding to their share of the household's combined income.
 - Equal leftover: Shared expenses are divided so that both people have the same amount of personal money remaining afterwards.

@@ -29,8 +29,8 @@
 - DONE! Web: Explore 3-4 low-fidelity layout directions, choose one against usability goals, then implement the redesign.
 
 ### Phase 3 - Additional web functionality
-- Web: Add Cypress end-to-end tests for the critical budgeting workflows. Keep domain unit tests in the core package; add web component tests where they provide useful coverage.
-- Web: Add other contribution types (see plan.md) that the user can choose from. App defaults to proportional for two persons and pooled for one household (i.e. one person).
+- DONE! Web: Add Cypress end-to-end tests for the critical budgeting workflows. Keep domain unit tests in the core package; add web component tests where they provide useful coverage.
+- Web: Add other contribution types (see specs.md > Contributions methods) that the user can choose from. App defaults to proportional.
 - Web: Add a summary view for the key household totals, reusing domain calculations where appropriate.
 - Web: Add selectable color schemes and light/dark modes.
 - Web: Add English and Finnish localization, including locale-aware number and currency formatting.
