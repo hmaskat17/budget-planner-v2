@@ -3,6 +3,8 @@ import { customElement } from 'lit/decorators.js';
 import { consume } from '@lit/context';
 import { calculateRemainingBalances, formatAmount } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
+import { baseStyles } from '../ui/shared-styles.ts';
+import { icon } from '../ui/icons.ts';
 
 /**
  * Read-only view of each person's remaining money (income minus personal expenses minus their
@@ -10,22 +12,35 @@ import { budgetContext, type BudgetContextValue } from '../context/budget-contex
  */
 @customElement('budget-remaining-balance')
 export class BudgetRemainingBalance extends LitElement {
-  static override styles = css`
-    :host {
-      display: block;
-    }
-    .balance-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .household-total {
-      font-weight: bold;
-      border-top: 1px solid #ddd;
-      padding-top: 10px;
-      margin-top: 10px;
-    }
-  `;
+  static override styles = [
+    baseStyles,
+    css`
+      :host {
+        padding: 18px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius);
+      }
+      .balance-row {
+        padding: 6px 0;
+      }
+      .balance-row .name {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .balance-row .name .icon {
+        color: var(--muted);
+      }
+      .balance-row .amount {
+        font-weight: 500;
+        color: var(--text);
+      }
+      .household-total {
+        margin-top: 10px;
+      }
+    `
+  ];
 
   @consume({ context: budgetContext, subscribe: true })
   budget?: BudgetContextValue;
@@ -47,12 +62,15 @@ export class BudgetRemainingBalance extends LitElement {
       ${balances.rows.map(
         (row) => html`
           <div class="balance-row">
-            <span>${row.person.name}:</span>
-            <span>${formatAmount(row.remaining)}</span>
+            <span class="name">${icon('user', 16)}${row.person.name}</span>
+            <span class="amount ${row.remaining < 0 ? 'negative' : ''}">${formatAmount(row.remaining)} €</span>
           </div>
         `
       )}
-      <p class="household-total">Household remaining: ${formatAmount(balances.householdTotal)}</p>
+      <p class="household-total">
+        <span>Household remaining</span>
+        <span class="total-amount ${balances.householdTotal < 0 ? 'negative' : ''}">${formatAmount(balances.householdTotal)} €</span>
+      </p>
     `;
   }
 }

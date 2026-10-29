@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { consume } from '@lit/context';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
+import { icon } from '../ui/icons.ts';
 
 /** Edits a person's shared display name; consumes budgetContext. */
 @customElement('person-editor')
@@ -9,18 +10,37 @@ export class PersonEditor extends LitElement {
   static override styles = css`
     :host {
       display: block;
-      margin-bottom: 4px;
+      font-family: var(--font);
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 44px;
+      padding: 0 14px;
+      color: var(--muted);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    label:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+    .icon {
+      flex: none;
     }
     input {
+      flex: 1;
+      min-width: 0;
       font: inherit;
-      border: none;
-      border-bottom: 1px solid transparent;
+      font-weight: 500;
+      color: var(--text);
       background: transparent;
-      padding: 0;
-    }
-    input:focus {
-      border-bottom-color: #4a90d9;
+      border: none;
       outline: none;
+      padding: 0;
     }
   `;
 
@@ -44,12 +64,16 @@ export class PersonEditor extends LitElement {
     }
 
     return html`
-      <input
-        type="text"
-        .value=${person.name}
-        aria-label="Person name"
-        @input=${this._onInput}
-      />
+      <label>
+        ${icon('user', 18)}
+        <input
+          type="text"
+          .value=${person.name}
+          placeholder="Name"
+          aria-label="Person name"
+          @input=${this._onInput}
+        />
+      </label>
     `;
   }
 }

@@ -12,91 +12,101 @@ import {
   SETTLEMENT_ENTRY_NAME
 } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
+import { baseStyles } from '../ui/shared-styles.ts';
+import { icon } from '../ui/icons.ts';
 
 export { formatAmount, createId, SETTLEMENT_ENTRY_NAME };
 
 /** Shared styles for scenario chips and entry rows */
-export const scenarioStyles = css`
-  :host {
-    display: block;
-  }
-  .entry-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .entry-row input {
-    width: 48%;
-  }
-  .entry-row.settlement input {
-    background: #f1f5f9;
-    color: #475569;
-  }
-  .entry-spacer {
-    visibility: hidden;
-  }
-  .add-entry-button {
-    display: block;
-    margin-bottom: 10px;
-  }
-  .person-total {
-    font-weight: bold;
-  }
-  .scenario-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 10px;
-  }
-  .scenario-chip {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    border: 1px solid #ccc;
-    border-radius: 999px;
-    background: #eee;
-    padding: 4px 6px 4px 10px;
-    font-size: 0.9em;
-  }
-  .scenario-chip.active {
-    background: #4a90d9;
-    border-color: #4a90d9;
-    color: #fff;
-  }
-  .scenario-chip-label {
-    border: none;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
-    padding: 0;
-  }
-  .scenario-chip-rename-trigger,
-  .scenario-chip-delete {
-    border: none;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-  }
-  .scenario-chip-delete {
-    font-size: 1.1em;
-  }
-  .scenario-chip-rename {
-    width: 100px;
-    font-size: 0.9em;
-  }
-  .scenario-chip-add {
-    border: 1px dashed #999;
-    border-radius: 999px;
-    background: transparent;
-    padding: 4px 10px;
-    cursor: pointer;
-    font-size: 0.9em;
-  }
-`;
+export const scenarioStyles = [
+  baseStyles,
+  css`
+    :host {
+      padding: 18px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+    }
+    .entry-row.settlement input {
+      font-style: italic;
+    }
+    .scenario-chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .scenario-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      height: 28px;
+      padding: 0 4px 0 12px;
+      font-size: 0.8125rem;
+      color: var(--text-2);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+    }
+    .scenario-chip.active {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .scenario-chip-label {
+      padding: 0 4px 0 0;
+      color: inherit;
+      background: transparent;
+      border: none;
+      font: inherit;
+      font-weight: 500;
+    }
+    .scenario-chip-rename-trigger,
+    .scenario-chip-delete {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      color: inherit;
+      background: transparent;
+      border: none;
+      border-radius: 50%;
+      opacity: 0.55;
+    }
+    .scenario-chip-rename-trigger:hover,
+    .scenario-chip-delete:hover {
+      opacity: 1;
+      background: color-mix(in srgb, currentColor 15%, transparent);
+    }
+    .scenario-chip-rename {
+      width: 110px;
+      height: 24px;
+      margin: 0 4px 0 -6px;
+      padding: 0 8px;
+      font-size: 0.8125rem;
+      color: var(--text);
+    }
+    .scenario-chip-add {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      color: var(--muted);
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 50%;
+    }
+    .scenario-chip-add:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+  `
+];
 
 /**
  * Base for per-person, scenario-based budget components (income, personal expenses).
@@ -295,7 +305,7 @@ export abstract class ScenarioBudgetElement extends LitElement {
     const activeScenario = this.getActiveScenario();
 
     return html`
-      <h3 class="person-name">${person?.name ?? 'Person'}</h3>
+      <h3 class="person-name">${icon('user', 16)}${person?.name ?? 'Person'}</h3>
 
       <div class="scenario-chips">
         ${state.scenarios.map((scenario) => {
@@ -331,9 +341,10 @@ export abstract class ScenarioBudgetElement extends LitElement {
                       type="button"
                       class="scenario-chip-rename-trigger"
                       title="Rename scenario"
+                      aria-label="Rename scenario"
                       @click=${() => this.startRenameScenario(scenario.id, scenario.name)}
                     >
-                      &#x270e;
+                      ${icon('pencil', 12)}
                     </button>
                     ${state.scenarios.length > 1
                       ? html`
@@ -341,9 +352,10 @@ export abstract class ScenarioBudgetElement extends LitElement {
                             type="button"
                             class="scenario-chip-delete"
                             title="Delete scenario"
+                            aria-label="Delete scenario"
                             @click=${() => this.deleteScenario(scenario.id)}
                           >
-                            &times;
+                            ${icon('x', 12)}
                           </button>
                         `
                       : ''}
@@ -355,9 +367,10 @@ export abstract class ScenarioBudgetElement extends LitElement {
           type="button"
           class="scenario-chip-add"
           title="New scenario"
+          aria-label="New scenario"
           @click=${() => this.addScenario()}
         >
-          +
+          ${icon('plus', 14)}
         </button>
       </div>
 
@@ -386,14 +399,16 @@ export abstract class ScenarioBudgetElement extends LitElement {
                         this.updateEntryAmount(index, (e.target as HTMLInputElement).value)}
                     />
                     ${entry.isSettlement
-                      ? html`<button type="button" class="entry-spacer" tabindex="-1" aria-hidden="true">Remove</button>`
+                      ? html`<button type="button" class="remove-entry-input entry-spacer" tabindex="-1" aria-hidden="true">${icon('trash', 16)}</button>`
                       : html`
                           <button
                             type="button"
                             class="remove-entry-input"
+                            title="Remove"
+                            aria-label="Remove"
                             @click=${() => this.removeEntry(index)}
                           >
-                            Remove
+                            ${icon('trash', 16)}
                           </button>
                         `}
                   </div>
@@ -404,14 +419,15 @@ export abstract class ScenarioBudgetElement extends LitElement {
                 class="add-entry-button"
                 @click=${() => this.addEntry()}
               >
-                ${this.addEntryLabel}
+                ${icon('plus', 14)}${this.addEntryLabel}
               </button>
             </div>
           `
         : ''}
 
       <p class="person-total">
-        Total: <span class="total-amount">${formatAmount(this.total())}</span>
+        <span>Total</span>
+        <span class="total-amount">${formatAmount(this.total())} €</span>
       </p>
     `;
   }

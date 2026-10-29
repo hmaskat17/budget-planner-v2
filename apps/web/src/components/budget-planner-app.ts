@@ -25,6 +25,7 @@ import {
 } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { localStorageAdapter } from '../adapters/local-storage-adapter.ts';
+import { icon, type IconName } from '../ui/icons.ts';
 
 // Import child components
 import './person-editor.ts';
@@ -36,6 +37,18 @@ import './budget-savings.ts';
 import './budget-proportional-contributions.ts';
 import './budget-unallocated-assets.ts';
 
+/** Page sections in display order; drives both the navigation and section headers. */
+const SECTIONS: { id: string; label: string; icon: IconName; accent: string }[] = [
+  { id: 'household-section', label: 'Household', icon: 'house', accent: '#475569' },
+  { id: 'income-section', label: 'Income', icon: 'trendingUp', accent: '#059669' },
+  { id: 'personal-expense-section', label: 'Personal expenses', icon: 'creditCard', accent: '#e11d48' },
+  { id: 'shared-expense-section', label: 'Shared expenses', icon: 'receipt', accent: '#d97706' },
+  { id: 'remaining-balance-section', label: 'Remaining balance', icon: 'wallet', accent: '#0284c7' },
+  { id: 'savings-section', label: 'Savings', icon: 'piggyBank', accent: '#7c3aed' },
+  { id: 'proportional-contributions-section', label: 'Contributions', icon: 'arrowsLeftRight', accent: '#4f46e5' },
+  { id: 'unallocated-assets-section', label: 'Unallocated assets', icon: 'landmark', accent: '#0d9488' }
+];
+
 /**
  * Root Application Component for Budget Planner.
  * Loads initial data with @lit/task, manages reactive application state,
@@ -46,52 +59,248 @@ export class BudgetPlannerApp extends LitElement {
   static override styles = css`
     :host {
       display: block;
-      font-family: Arial, sans-serif;
+      font-family: var(--font);
+      --nav-offset: 16px;
     }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+    [hidden] {
+      display: none !important;
+    }
+    .icon {
+      flex: none;
+    }
+
+    .app-header {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 24px 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      color: #fff;
+      background: var(--primary);
+      border-radius: 12px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.375rem;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+    .tagline {
+      margin: 2px 0 0;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr);
+      gap: 32px;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px 64px;
+    }
+
+    nav {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+    }
+    nav ul {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      white-space: nowrap;
+      border-radius: var(--radius-sm);
+      transition: background 0.12s, color 0.12s;
+    }
+    nav a:hover {
+      color: var(--text);
+      background: var(--border-soft);
+    }
+    nav a[aria-current='true'] {
+      color: var(--nav-accent);
+      background: color-mix(in srgb, var(--nav-accent) 10%, transparent);
+    }
+    nav a:focus-visible {
+      outline: 2px solid var(--nav-accent);
+      outline-offset: 1px;
+    }
+
     .budget-section {
-      background-color: #fff;
-      padding: 20px;
-      margin: 20px auto;
-      width: 90%;
-      max-width: 640px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 24px;
+      padding: 28px;
+      scroll-margin-top: var(--nav-offset);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
     }
-    .budget-section h2 {
-      margin-top: 0;
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .section-icon {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      color: var(--section-accent);
+      background: color-mix(in srgb, var(--section-accent) 12%, transparent);
+      border-radius: 10px;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
     }
     .budget-columns {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 20px;
-      flex-wrap: wrap;
     }
-    .budget-columns > * {
-      flex: 1 1 260px;
-      min-width: 260px;
-    }
+
     .person-row {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
+    .person-row person-editor {
+      flex: 1;
+    }
+    .remove-person {
+      display: grid;
+      place-items: center;
+      flex: none;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .remove-person:hover {
+      color: var(--negative);
+      background: var(--negative-bg);
+      border-color: transparent;
+    }
+    #add-person {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 14px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--accent);
+      background: transparent;
+      border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    #add-person:hover {
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+    }
+    .remove-person:focus-visible,
+    #add-person:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     #household-total,
     #household-expense-total,
     #household-assets-total {
-      font-weight: bold;
-      margin-top: 20px;
-      border-top: 1px solid #ddd;
-      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin: 20px 0 0;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
     }
+    #household-total strong,
+    #household-expense-total strong,
+    #household-assets-total strong {
+      font-size: 1.25rem;
+      font-weight: 650;
+      color: var(--text);
+    }
+
     .loading-container {
       text-align: center;
       padding: 40px;
       font-size: 1.1em;
-      color: #555;
+      color: var(--muted);
     }
     .error-container {
-      color: #d00;
+      color: var(--negative);
       padding: 20px;
       text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      :host {
+        --nav-offset: 72px;
+      }
+      .app-header {
+        padding: 20px 16px 12px;
+      }
+      .layout {
+        display: block;
+        padding: 0 16px 48px;
+      }
+      nav {
+        top: 0;
+        z-index: 10;
+        margin: 0 -16px 16px;
+        padding: 8px 16px;
+        background: color-mix(in srgb, var(--bg) 92%, transparent);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+      }
+      nav ul {
+        flex-direction: row;
+        gap: 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .budget-section {
+        padding: 20px 16px;
+      }
     }
   `;
 
@@ -111,6 +320,49 @@ export class BudgetPlannerApp extends LitElement {
 
   @provide({ context: budgetContext })
   budgetContextValue: BudgetContextValue = this._createContextValue();
+
+  @state()
+  private _activeSection = SECTIONS[0].id;
+
+  private _scrollFrame = 0;
+
+  private readonly _onScroll = (): void => {
+    cancelAnimationFrame(this._scrollFrame);
+    this._scrollFrame = requestAnimationFrame(() => this._updateActiveSection());
+  };
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    window.addEventListener('resize', this._onScroll);
+  }
+
+  override disconnectedCallback(): void {
+    window.removeEventListener('scroll', this._onScroll);
+    window.removeEventListener('resize', this._onScroll);
+    cancelAnimationFrame(this._scrollFrame);
+    super.disconnectedCallback();
+  }
+
+  /** Last section whose top has passed a threshold below the sticky nav. */
+  private _updateActiveSection(): void {
+    const threshold = window.innerHeight * 0.3;
+    const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+    let current = SECTIONS[0].id;
+    for (const { id } of SECTIONS) {
+      const el = this.renderRoot.querySelector(`#${id}`);
+      if (el && el.getBoundingClientRect().top <= threshold) {
+        current = id;
+      }
+    }
+    this._activeSection = atBottom ? SECTIONS[SECTIONS.length - 1].id : current;
+  }
+
+  private _goToSection(e: Event, id: string): void {
+    e.preventDefault();
+    this._activeSection = id;
+    this.renderRoot.querySelector(`#${id}`)?.scrollIntoView({ block: 'start' });
+  }
 
   /** Async task for loading budget data on startup */
   private _loadDataTask = new Task(this, {
@@ -384,109 +636,140 @@ export class BudgetPlannerApp extends LitElement {
     const canAdd = coreCanAddPerson(people);
 
     return html`
-      <!-- Household -->
-      <div id="household-section" class="budget-section">
-        <h2>Household</h2>
-        <div id="household-people">
-          ${people.map(
-            (person) => html`
-              <div class="person-row" data-person-id=${person.id}>
-                <person-editor .personId=${person.id}></person-editor>
-                ${people.length > 1
-                  ? html`
-                      <button
-                        type="button"
-                        class="remove-person"
-                        @click=${() => this._removePerson(person.id)}
-                      >
-                        Remove
-                      </button>
-                    `
-                  : ''}
-              </div>
-            `
-          )}
+      <header class="app-header">
+        <div class="brand">
+          <span class="logo">${icon('wallet', 24)}</span>
+          <div>
+            <h1>Budget Planner</h1>
+            <p class="tagline">Plan income, expenses and savings together</p>
+          </div>
         </div>
-        <button
-          type="button"
-          id="add-person"
-          ?hidden=${!canAdd}
-          @click=${() => this._addPerson()}
-        >
-          Add person
-        </button>
-      </div>
+      </header>
 
-      <!-- Income -->
-      <div id="income-section" class="budget-section">
-        <h2>Income</h2>
-        <div id="income-people" class="budget-columns">
-          ${people.map(
-            (person) => html`
-              <budget-income .personId=${person.id}></budget-income>
-            `
-          )}
+      <div class="layout">
+        <nav aria-label="Sections">
+          <ul>
+            ${SECTIONS.map(
+              (s) => html`
+                <li>
+                  <a
+                    href="#${s.id}"
+                    style="--nav-accent: ${s.accent}"
+                    aria-current=${this._activeSection === s.id ? 'true' : 'false'}
+                    @click=${(e: Event) => this._goToSection(e, s.id)}
+                  >
+                    ${icon(s.icon, 18)}${s.label}
+                  </a>
+                </li>
+              `
+            )}
+          </ul>
+        </nav>
+
+        <main>
+          ${this._section('household-section', html`
+            <div id="household-people">
+              ${people.map(
+                (person) => html`
+                  <div class="person-row" data-person-id=${person.id}>
+                    <person-editor .personId=${person.id}></person-editor>
+                    ${people.length > 1
+                      ? html`
+                          <button
+                            type="button"
+                            class="remove-person"
+                            title="Remove person"
+                            aria-label="Remove ${person.name}"
+                            @click=${() => this._removePerson(person.id)}
+                          >
+                            ${icon('trash', 18)}
+                          </button>
+                        `
+                      : ''}
+                  </div>
+                `
+              )}
+            </div>
+            <button
+              type="button"
+              id="add-person"
+              ?hidden=${!canAdd}
+              @click=${() => this._addPerson()}
+            >
+              ${icon('plus', 16)}Add person
+            </button>
+          `)}
+
+          ${this._section('income-section', html`
+            <div id="income-people" class="budget-columns">
+              ${people.map(
+                (person) => html`
+                  <budget-income .personId=${person.id}></budget-income>
+                `
+              )}
+            </div>
+            <p id="household-total">
+              <span>Household income</span>
+              <strong id="household-total-amount">${formatAmount(totals.income)} €</strong>
+            </p>
+          `)}
+
+          ${this._section('personal-expense-section', html`
+            <div id="personal-expense-people" class="budget-columns">
+              ${people.map(
+                (person) => html`
+                  <budget-personal-expense .personId=${person.id}></budget-personal-expense>
+                `
+              )}
+            </div>
+            <p id="household-expense-total">
+              <span>Household personal expenses</span>
+              <strong id="household-expense-total-amount">${formatAmount(totals.personalExpenses)} €</strong>
+            </p>
+          `)}
+
+          ${this._section('shared-expense-section', html`
+            <budget-shared-expense></budget-shared-expense>
+          `)}
+
+          ${this._section('remaining-balance-section', html`
+            <budget-remaining-balance></budget-remaining-balance>
+          `)}
+
+          ${this._section('savings-section', html`<budget-savings></budget-savings>`)}
+
+          ${this._section('proportional-contributions-section', html`
+            <budget-proportional-contributions></budget-proportional-contributions>
+          `)}
+
+          ${this._section('unallocated-assets-section', html`
+            <div id="unallocated-assets-people" class="budget-columns">
+              ${people.map(
+                (person) => html`
+                  <budget-unallocated-assets .personId=${person.id}></budget-unallocated-assets>
+                `
+              )}
+            </div>
+            <p id="household-assets-total">
+              <span>Household unallocated assets</span>
+              <strong id="household-assets-total-amount">${formatAmount(totals.assets)} €</strong>
+            </p>
+          `)}
+        </main>
+      </div>
+    `;
+  }
+
+  private _section(id: string, body: unknown) {
+    const meta = SECTIONS.find((s) => s.id === id)!;
+    return html`
+      <section id=${id} class="budget-section" style="--section-accent: ${meta.accent}">
+        <div class="section-head">
+          <span class="section-icon">${icon(meta.icon, 20)}</span>
+          <h2>${meta.label}</h2>
         </div>
-        <p id="household-total">
-          Household income: <span id="household-total-amount">${formatAmount(totals.income)}</span>
-        </p>
-      </div>
-
-      <!-- Personal Expenses -->
-      <div id="personal-expense-section" class="budget-section">
-        <h2>Personal Expenses</h2>
-        <div id="personal-expense-people" class="budget-columns">
-          ${people.map(
-            (person) => html`
-              <budget-personal-expense .personId=${person.id}></budget-personal-expense>
-            `
-          )}
-        </div>
-        <p id="household-expense-total">
-          Household personal expenses:
-          <span id="household-expense-total-amount">${formatAmount(totals.personalExpenses)}</span>
-        </p>
-      </div>
-
-      <!-- Shared Expenses -->
-      <div id="shared-expense-section" class="budget-section">
-        <h2>Shared Expenses</h2>
-        <budget-shared-expense></budget-shared-expense>
-      </div>
-
-      <!-- Remaining Balance -->
-      <div id="remaining-balance-section" class="budget-section">
-        <h2>Remaining Balance</h2>
-        <budget-remaining-balance></budget-remaining-balance>
-      </div>
-
-      <!-- Savings -->
-      <div id="savings-section" class="budget-section">
-        <h2>Savings</h2>
-        <budget-savings></budget-savings>
-      </div>
-
-      <!-- Proportional Contributions -->
-      <div id="proportional-contributions-section" class="budget-section">
-        <h2>Proportional Contributions</h2>
-        <budget-proportional-contributions></budget-proportional-contributions>
-      </div>
-
-      <!-- Unallocated Assets -->
-      <div id="unallocated-assets-section" class="budget-section">
-        <h2>Unallocated Assets</h2>
-        <div id="unallocated-assets-people" class="budget-columns">
-          ${people.map(
-            (person) => html`
-              <budget-unallocated-assets .personId=${person.id}></budget-unallocated-assets>
-            `
-          )}
-        </div>
-        <p id="household-assets-total">
-          Household unallocated assets:
-          <span id="household-assets-total-amount">${formatAmount(totals.assets)}</span>
-        </p>
-      </div>
+        ${body}
+      </section>
     `;
   }
 }

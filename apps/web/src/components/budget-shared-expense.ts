@@ -5,6 +5,7 @@ import type { Scenario, ScenarioState, SharedExpenseEntry } from '@budget-planne
 import { createId, entriesTotal, formatAmount } from '@budget-planner/core';
 import { scenarioStyles } from './scenario-budget.ts';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
+import { icon } from '../ui/icons.ts';
 
 /**
  * Household-wide shared expense component. Unlike the per-person budgets, this mounts once:
@@ -15,27 +16,19 @@ export class BudgetSharedExpense extends LitElement {
   static override styles = [
     scenarioStyles,
     css`
-      .entry-row input[type="text"] {
-        width: 34%;
-      }
-      .entry-row input[type="number"] {
-        width: 18%;
-      }
-      .entry-row select {
-        width: 26%;
-      }
       .person-subtotals {
-        margin: 10px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
       }
       .person-subtotal-row {
-        display: flex;
-        justify-content: space-between;
+        color: var(--muted);
       }
       .household-total {
-        font-weight: bold;
-        border-top: 1px solid #ddd;
-        padding-top: 10px;
-        margin-top: 10px;
+        margin-top: 12px;
       }
     `
   ];
@@ -238,9 +231,10 @@ export class BudgetSharedExpense extends LitElement {
                       type="button"
                       class="scenario-chip-rename-trigger"
                       title="Rename scenario"
+                      aria-label="Rename scenario"
                       @click=${() => this.startRenameScenario(scenario.id, scenario.name)}
                     >
-                      &#x270e;
+                      ${icon('pencil', 12)}
                     </button>
                     ${current.scenarios.length > 1
                       ? html`
@@ -248,9 +242,10 @@ export class BudgetSharedExpense extends LitElement {
                             type="button"
                             class="scenario-chip-delete"
                             title="Delete scenario"
+                            aria-label="Delete scenario"
                             @click=${() => this.deleteScenario(scenario.id)}
                           >
-                            &times;
+                            ${icon('x', 12)}
                           </button>
                         `
                       : ''}
@@ -262,9 +257,10 @@ export class BudgetSharedExpense extends LitElement {
           type="button"
           class="scenario-chip-add"
           title="New scenario"
+          aria-label="New scenario"
           @click=${() => this.addScenario()}
         >
-          +
+          ${icon('plus', 14)}
         </button>
       </div>
 
@@ -306,9 +302,11 @@ export class BudgetSharedExpense extends LitElement {
               <button
                 type="button"
                 class="remove-entry-input"
+                title="Remove"
+                aria-label="Remove"
                 @click=${() => this.removeEntry(index)}
               >
-                Remove
+                ${icon('trash', 16)}
               </button>
             </div>
           `)}
@@ -318,7 +316,7 @@ export class BudgetSharedExpense extends LitElement {
           class="add-entry-button"
           @click=${() => this.addEntry()}
         >
-          Add new shared expense
+          ${icon('plus', 14)}Add new shared expense
         </button>
       </div>
 
@@ -326,15 +324,16 @@ export class BudgetSharedExpense extends LitElement {
         ${people.map(
           (person) => html`
             <div class="person-subtotal-row">
-              <span>${person.name}:</span>
-              <span data-person-subtotal=${person.id}>${formatAmount(this.personTotal(person.id))}</span>
+              <span>${person.name}</span>
+              <span data-person-subtotal=${person.id}>${formatAmount(this.personTotal(person.id))} €</span>
             </div>
           `
         )}
       </div>
 
       <p class="household-total">
-        Combined shared expenses: <span class="total-amount">${formatAmount(this.total())}</span>
+        <span>Combined shared expenses</span>
+        <span class="total-amount">${formatAmount(this.total())} €</span>
       </p>
     `;
   }

@@ -1,46 +1,51 @@
+:root {
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --border: #e4e7ec;
+    --border-soft: #eef0f3;
+
+    --text: #111827;
+    --text-2: #374151;
+    --muted: #6b7280;
+
+    --primary: #4f46e5;
+    --positive: #15803d;
+    --negative: #b91c1c;
+    --positive-bg: #dcfce7;
+    --negative-bg: #fee2e2;
+
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+
+    /* Default accent; each section overrides it. */
+    --accent: var(--primary);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
 body {
-    font-family: Arial, sans-serif;
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text);
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
-}
-
-.budget-section {
-    background-color: #fff;
-    padding: 20px;
-    margin: 20px auto;
-    width: 90%;
-    max-width: 640px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.budget-section h2 {
-    margin-top: 0;
-}
-
-.budget-columns {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.budget-columns > * {
-    flex: 1 1 260px;
-    min-width: 260px;
-}
-
-.person-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-#household-total,
-#household-expense-total,
-#household-assets-total {
-    font-weight: bold;
-    margin-top: 20px;
-    border-top: 1px solid #ddd;
-    padding-top: 10px;
+    background-color: var(--bg);
+    -webkit-font-smoothing: antialiased;
 }

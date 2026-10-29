@@ -5,6 +5,7 @@ import type { Entry } from '@budget-planner/core';
 import { entriesTotal, formatAmount } from '@budget-planner/core';
 import { scenarioStyles } from './scenario-budget.ts';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
+import { icon } from '../ui/icons.ts';
 
 /**
  * Per-person list of money and assets held elsewhere (other accounts, gold, cash).
@@ -60,7 +61,7 @@ export class BudgetUnallocatedAssets extends LitElement {
     const entries = this.entries();
 
     return html`
-      <h3 class="person-name">${person?.name ?? 'Person'}</h3>
+      <h3 class="person-name">${icon('user', 16)}${person?.name ?? 'Person'}</h3>
 
       <div class="entry-inputs">
         ${entries.map(
@@ -83,9 +84,11 @@ export class BudgetUnallocatedAssets extends LitElement {
               <button
                 type="button"
                 class="remove-entry-input"
+                title="Remove"
+                aria-label="Remove"
                 @click=${() => this.removeEntry(index)}
               >
-                Remove
+                ${icon('trash', 16)}
               </button>
             </div>
           `
@@ -97,11 +100,12 @@ export class BudgetUnallocatedAssets extends LitElement {
         class="add-entry-button"
         @click=${() => this.addEntry()}
       >
-        Add new asset
+        ${icon('plus', 14)}Add new asset
       </button>
 
       <p class="person-total">
-        Total: <span class="total-amount">${formatAmount(this.total())}</span>
+        <span>Total</span>
+        <span class="total-amount">${formatAmount(this.total())} €</span>
       </p>
     `;
   }

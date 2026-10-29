@@ -10,6 +10,8 @@ import {
   formatAmount
 } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
+import { baseStyles } from '../ui/shared-styles.ts';
+import { icon } from '../ui/icons.ts';
 
 /**
  * Unified Savings Component holding:
@@ -19,150 +21,129 @@ import { budgetContext, type BudgetContextValue } from '../context/budget-contex
  */
 @customElement('budget-savings')
 export class BudgetSavings extends LitElement {
-  static override styles = css`
-    :host {
-      display: block;
-    }
-    .savings-container {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .personal-savings-columns {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-    .savings-card {
-      flex: 1 1 260px;
-      min-width: 260px;
-      background: #fafafa;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 14px;
-      box-sizing: border-box;
-    }
-    .savings-card h3 {
-      margin: 0 0 10px 0;
-      font-size: 1.1em;
-    }
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 0.95em;
-    }
-    .stat-row.subtle {
-      color: #555;
-    }
-    .stat-row.highlight {
-      font-weight: bold;
-      border-top: 1px dashed #ccc;
-      padding-top: 6px;
-      margin-top: 6px;
-    }
-    .contribution-section {
-      background: #f0f4f8;
-      border: 1px solid #d4e2ee;
-      border-radius: 4px;
-      padding: 8px 10px;
-      margin: 10px 0;
-    }
-    .contribution-label {
-      font-size: 0.9em;
-      margin-bottom: 6px;
-      font-weight: 500;
-    }
-    .contribution-inputs {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .contribution-inputs input[type="number"] {
-      width: 60px;
-      padding: 3px 6px;
-    }
-    .contribution-amount {
-      font-size: 0.9em;
-      color: #2c5282;
-      font-weight: bold;
-    }
-    .items-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin: 12px 0;
-    }
-    .savings-item-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .savings-item-row input[type="text"] {
-      flex: 2;
-      min-width: 0;
-      padding: 4px 6px;
-    }
-    .savings-item-row input[type="number"] {
-      width: 50px;
-      padding: 4px 6px;
-    }
-    .savings-item-amount {
-      flex: 1;
-      min-width: 55px;
-      text-align: right;
-      font-size: 0.9em;
-      color: #333;
-    }
-    .remove-item-btn {
-      border: none;
-      background: transparent;
-      color: #777;
-      cursor: pointer;
-      padding: 0 4px;
-      font-size: 1.1em;
-      line-height: 1;
-    }
-    .remove-item-btn:hover {
-      color: #d00;
-    }
-    .add-item-btn {
-      display: inline-block;
-      margin-bottom: 10px;
-      font-size: 0.9em;
-      padding: 4px 10px;
-    }
-    .allocation-summary {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      padding: 8px 10px;
-      font-size: 0.9em;
-      margin-top: 8px;
-    }
-    .summary-bar {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-    .allocation-warning {
-      color: #c53030;
-      font-weight: bold;
-      margin-top: 4px;
-      font-size: 0.85em;
-    }
-    .shared-savings-card {
-      background: #fbfbfb;
-      border: 1px solid #cbd5e0;
-      border-radius: 6px;
-      padding: 14px;
-      box-sizing: border-box;
-    }
-    .shared-savings-card h3 {
-      margin: 0 0 10px 0;
-      font-size: 1.1em;
-    }
-  `;
+  static override styles = [
+    baseStyles,
+    css`
+      .savings-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .personal-savings-columns {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+      }
+      .savings-card,
+      .shared-savings-card {
+        padding: 18px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius);
+      }
+      .shared-savings-card {
+        background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+        border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+      }
+      .stat-row {
+        margin-bottom: 8px;
+      }
+      .stat-row.subtle {
+        color: var(--muted);
+      }
+      .stat-row.highlight {
+        margin-top: 0;
+        margin-bottom: 14px;
+      }
+      .contribution-section {
+        margin: 12px 0;
+        padding: 10px 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+      }
+      .contribution-label {
+        margin-bottom: 8px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--muted);
+      }
+      .contribution-inputs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+      }
+      .contribution-inputs input[type='number'] {
+        width: 72px;
+      }
+      .contribution-amount {
+        margin-left: auto;
+        font-weight: 600;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .items-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .savings-item-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        color: var(--muted);
+      }
+      .savings-item-row input[type='text'] {
+        flex: 1 1 120px;
+      }
+      .savings-item-row input[type='number'] {
+        flex: none;
+        width: 68px;
+      }
+      .savings-item-amount {
+        flex: 0 0 auto;
+        min-width: 72px;
+        text-align: right;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .add-item-btn {
+        margin-bottom: 12px;
+      }
+      .allocation-summary {
+        padding: 10px 12px;
+        margin-top: 4px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+      .summary-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 4px 12px;
+      }
+      .summary-bar strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .allocation-warning {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        color: var(--negative);
+        font-weight: 500;
+      }
+    `
+  ];
 
   @consume({ context: budgetContext, subscribe: true })
   budget?: BudgetContextValue;
@@ -301,15 +282,15 @@ export class BudgetSavings extends LitElement {
           ${personCalcs.map(
             ({ person, pData, remaining, contribution, personalPool, allocation }) => html`
               <div class="savings-card" data-person-id=${person.id}>
-                <h3>${person.name}'s Savings</h3>
+                <h3>${icon('user', 16)}${person.name}'s savings</h3>
 
                 <div class="stat-row">
-                  <span>Remaining money:</span>
+                  <span>Remaining money</span>
                   <span class="person-remaining-val">${formatAmount(remaining)} €</span>
                 </div>
 
                 <div class="contribution-section">
-                  <div class="contribution-label">Contribution to Shared Savings:</div>
+                  <div class="contribution-label">Contribution to shared savings</div>
                   <div class="contribution-inputs">
                     <input
                       type="number"
@@ -331,7 +312,7 @@ export class BudgetSavings extends LitElement {
                 </div>
 
                 <div class="stat-row subtle">
-                  <span>Personal savings pool:</span>
+                  <span>Personal savings pool</span>
                   <span class="person-pool-val">${formatAmount(personalPool)} €</span>
                 </div>
 
@@ -374,9 +355,10 @@ export class BudgetSavings extends LitElement {
                           type="button"
                           class="remove-item-btn"
                           title="Remove goal"
+                          aria-label="Remove goal"
                           @click=${() => this.removePersonalGoal(person.id, index)}
                         >
-                          &times;
+                          ${icon('trash', 16)}
                         </button>
                       </div>
                     `;
@@ -388,7 +370,7 @@ export class BudgetSavings extends LitElement {
                   class="add-item-btn"
                   @click=${() => this.addPersonalGoal(person.id)}
                 >
-                  + Add personal goal
+                  ${icon('plus', 14)}Add personal goal
                 </button>
 
                 <div class="allocation-summary person-summary">
@@ -403,7 +385,7 @@ export class BudgetSavings extends LitElement {
                   ${allocation.isOverallocated
                     ? html`
                         <div class="allocation-warning">
-                          Total allocated percentage exceeds 100%
+                          ${icon('alert', 14)}Total allocated percentage exceeds 100%
                           (${formatAmount(allocation.allocatedPercent)}%)
                         </div>
                       `
@@ -415,10 +397,10 @@ export class BudgetSavings extends LitElement {
         </div>
 
         <div class="shared-savings-card">
-          <h3>Shared Household Savings</h3>
+          <h3>${icon('users', 16)}Shared household savings</h3>
 
           <div class="stat-row highlight">
-            <span>Total pooled shared savings:</span>
+            <span>Total pooled shared savings</span>
             <span class="shared-pool-val">${formatAmount(sharedPool)} €</span>
           </div>
 
@@ -452,9 +434,10 @@ export class BudgetSavings extends LitElement {
                     type="button"
                     class="remove-item-btn"
                     title="Remove goal"
+                    aria-label="Remove goal"
                     @click=${() => this.removeSharedGoal(index)}
                   >
-                    &times;
+                    ${icon('trash', 16)}
                   </button>
                 </div>
               `;
@@ -466,7 +449,7 @@ export class BudgetSavings extends LitElement {
             class="add-item-btn"
             @click=${() => this.addSharedGoal()}
           >
-            + Add shared goal
+            ${icon('plus', 14)}Add shared goal
           </button>
 
           <div class="allocation-summary shared-summary">
@@ -481,7 +464,7 @@ export class BudgetSavings extends LitElement {
             ${sharedAllocation.isOverallocated
               ? html`
                   <div class="allocation-warning">
-                    Total allocated percentage exceeds 100%
+                    ${icon('alert', 14)}Total allocated percentage exceeds 100%
                     (${formatAmount(sharedAllocation.allocatedPercent)}%)
                   </div>
                 `
