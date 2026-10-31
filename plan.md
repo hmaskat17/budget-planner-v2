@@ -1,78 +1,61 @@
 # Plan
 
-- Domain: TypeScript
-- Web: Vite + Lit
-- Mobile: NativeScript
+Overall requirements, architecture and phases. Task status is tracked in [tasks.md](./tasks.md); detailed requirements are in [specs.md](./specs.md); Phase 0 research is in [docs/phase-0-findings.md](./docs/phase-0-findings.md).
 
-## Todo
+## Tech stack
+- Domain: TypeScript in `packages/core`, unit tested with Vitest
+- Web: Vite + Lit (`@lit/context` for shared UI state, `@lit/task` for async data), Cypress for end-to-end tests
+- Mobile: NativeScript Core (TypeScript/XML), Android only for the initial release
 
-### Phase 0 - Validate the technical direction
-- DONE! Mobile: Use NativeScript Core with TypeScript/XML for the initial Android app. Create a small spike to verify workspace compatibility and the Android development workflow.
-- DONE! Mobile: Target Android only for the initial release; defer iOS support until a later phase.
-- DONE! Architecture: Confirm package boundaries and how the web and NativeScript apps will consume the shared TypeScript domain package.
+## Architecture
+- npm workspaces monorepo (`apps/*`, `packages/*`).
+- `packages/core` (`@budget-planner/core`) holds UI-independent models, calculations, settlement and contribution rules, scenarios, summaries and validation as pure functions that take data in and return results. It is consumed as TypeScript source via its `exports` entry (`src/index.ts`).
+- Each app owns rendering, UI events and platform adapters (e.g. `localStorage` on web).
+- State is owned by the core and shared through context; components must not read each other's state through the DOM.
 
-#### Phase 0 findings
-- Spike: `../budget-planner-v2-android` (separate folder, kept outside this repo for now) builds, installs and renders on a physical Android 16 device with `npm run android`. Requirements: JDK 21 (Gradle 8.14.3 fails on JDK 25) and `@nativescript/android` as a devDependency; the blank template did not include it, and the CLI reported the runtime version as `null` without it.
-- Shared-core boundary (to extract in Phase 1):
-  - Into `packages/core`: types in `models.js`; person rules (1-2 persons, at least one, ids, names) from `person-store.js`; income, expense and asset totals with settlement-free base totals (`baseTotal` logic in `total-aggregator.js`); remaining balance per person (income - personal expenses - shared expenses paid, from `budget-savings.js`); savings percentage allocation and shared-savings pooling (`budget-savings.js`); proportional contribution, share, paid and balance-to-settle plus settlement application (`budget-proportional-contributions.js`); scenario and entry handling and `formatAmount`/`uid` from `scenario-budget.js`.
-  - Stays in each app: custom elements, shadow DOM styles and rendering; DOM events (`income-changed` etc.) and `document.querySelector` lookups, which currently act as the data layer; `localStorage` access in `person-store.js` and `budget-savings.js`, to become a storage adapter.
-  - Main refactor risk: components read each other's state through the DOM (e.g. savings and proportional contributions query `budget-income` elements). The core must own this state and expose pure functions that take data in and return results.
-
-### Phase 1 - Refactoring project structure
-- DONE! Configure an npm workspaces monorepo with separate web and mobile apps and a shared core domain package. Important! Do not yet implement the NativeScript mobile app, only create the empty folder.
-- DONE! Domain: Extract shared models, budget calculations, and validation into UI-independent TypeScript modules.
-- DONE! Domain: Add Vitest unit tests alongside the extracted rules, including settlement and edge cases.
-- DONE! Web: Add and configure Vite and TypeScript. Migrate the existing JavaScript, using current JSDoc types as a guide. Remove the domain logic that was already migrated to the domain layer.
-- DONE! Web: Add Lit and migrate the current UI. Use Lit templates and styles for presentation; use @lit/context for state shared within the web component tree, not as the cross-platform domain layer and @lit/task for async data if needed.
-
-### Phase 2 - Product design decisions
-- DONE! Web: Explore 3-4 low-fidelity layout directions, choose one against usability goals, then implement the redesign.
-
-### Phase 3 - Additional web functionality
-- DONE! Web: Add Cypress end-to-end tests for the critical budgeting workflows. Keep domain unit tests in the core package; add web component tests where they provide useful coverage.
-- DONE! Web: Add other contribution types (see specs.md > Contributions methods) that the user can choose from. App defaults to proportional.
-- DONE! Web: Add a summary view for the key household totals, reusing domain calculations where appropriate.
-- Web: Add selectable color schemes and light/dark modes.
-- Web: Add English and Finnish localization, including locale-aware number and currency formatting.
-- Web/Domain: Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
-
-### Phase 4 - Web product review
-- Product: Review the current budget experience and logic for web. Prioritize findings and agree on which product changes are in scope before implementation.
-
-### Phase 5 - Build the mobile app
-- Mobile: Explore 3-4 low-fidelity layout directions, choose one against usability goals, then implement the redesign.
-- Mobile: Implement the Android app with NativeScript Core and reuse the shared domain package.
-- Mobile: Add Android persistence and test the core mobile workflows on Android.
-- Future: Reassess iOS support after the Android app is established.
-
-## Project structure example
-Illustrative only. Final NativeScript app files and directories should follow the NativeScript Core template.
-
-budget-planner/
+## Current structure
+```
+budget-planner-v2/
 ├── apps/
-│   ├── web/
+│   ├── web/                     # @budget-planner/web (Vite + Lit)
 │   │   ├── src/
-│   │   │   ├── components/
-│   │   │   ├── pages/
-│   │   │   ├── services/
-│   │   │   ├── adapters/
-│   │   │   └── main.ts
-│   │   └── vite.config.ts
-│   │
-│   └── mobile/
-│       ├── app/
-│       │   ├── screens/
-│       │   ├── components/
-│       │   ├── navigation/
-│       │   └── adapters/
-│       └── package.json
-│
+│   │   │   ├── adapters/        # platform adapters (local-storage-adapter.ts)
+│   │   │   ├── components/      # Lit custom elements (budget-*, person-editor, scenario-budget)
+│   │   │   ├── context/         # @lit/context budget state
+│   │   │   ├── dev/             # sample data
+│   │   │   ├── ui/              # shared styles and icons
+│   │   │   ├── main.ts
+│   │   │   └── styles.css
+│   │   ├── cypress/e2e/         # end-to-end tests (budgeting.cy.ts)
+│   │   ├── cypress.config.ts
+│   │   ├── vite.config.ts
+│   │   └── tsconfig.json
+│   └── mobile/                  # empty; NativeScript app comes in Phase 5
 ├── packages/
-│   └── core/
+│   └── core/                    # @budget-planner/core
 │       └── src/
-│           └── domain/
-│               ├── models/
-│               └── rules/
-│
-├── package.json
-└── tsconfig.base.json
+│           ├── domain/          # models, calculations, settlements, summary, scenarios,
+│           │                    # persons, validation, utils (+ *.test.ts next to the code)
+│           └── index.ts         # public API
+├── docs/                        # research notes (phase-0-findings.md)
+├── plan.md  tasks.md  specs.md
+└── package.json                 # workspaces and root scripts
+```
+The NativeScript app files will follow the NativeScript Core template when created.
+
+## Testing
+- Unit: Vitest, run from the root with `npm test` (`npm run test:watch` for watch mode). Test files live beside the code as `*.test.ts`, currently in `packages/core`.
+- End-to-end: Cypress for the web app, run with `npm run test:e2e` (starts Vite, then runs `cypress run`). Specs are in `apps/web/cypress/e2e`.
+- Type checking: `npm run typecheck` in each workspace.
+- Business rules belong in core with unit tests; web tests cover critical workflows and components where useful.
+
+## Phases
+- **Phase 0 - Validate the technical direction**: Prove that NativeScript works for an Android app in this workspace and decide the package boundaries between the apps and the shared core.
+- **Phase 1 - Project structure**: Turn the original JavaScript prototype into a TypeScript monorepo with a tested shared core and a Vite + Lit web app.
+- **Phase 2 - Product design**: Explore layout directions for the web app, choose one against usability goals and implement the redesign.
+- **Phase 3 - Additional web functionality**: Grow the web app from a working prototype into a complete product: more contribution methods, summaries, theming, localization (English and Finnish), and data export/import, backed by end-to-end tests.
+- **Phase 4 - Web product review**: Review the web budget experience and logic, prioritize findings and agree on which changes are in scope before implementing them.
+- **Phase 5 - Mobile app**: Build the Android app with NativeScript, reusing the shared core. Includes layout design, local persistence and testing the main workflows on a device.
+- **Phase 6 - Cross-platform review**: Review the current state of both the web and mobile apps together: consistency of behavior and UX, shared-core gaps, test coverage, performance and accessibility. Agree on fixes before release work starts.
+- **Phase 7 - Deployment and production**: Prepare for real users: build and release pipelines, web hosting, Android distribution, environment configuration, monitoring, privacy and data-handling checks, and release documentation. A changelog is added here.
+- **Phase 8 - Maintenance and future plans**: Keep the product healthy after release (dependency updates, bug fixes, user feedback) and decide which ideas from the future list in tasks.md to pursue, including iOS support.
