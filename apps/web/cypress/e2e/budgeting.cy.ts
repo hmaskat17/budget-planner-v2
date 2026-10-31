@@ -44,6 +44,17 @@ describe('critical budgeting workflows', () => {
       .and('contain.text', '1300.00 €')
       .and('contain.text', '2900.00 €');
 
+    const summary = () => app().find('budget-summary').shadow();
+    summary().find('#summary-income-total').should('have.text', '4500.00 €');
+    summary().find('#summary-networth-total').should('have.text', '4500.00 €');
+    summary().find('#summary-expenses-total').should('have.text', '1600.00 €');
+    summary().find('#summary-savings-total').should('have.text', '0.00 €');
+    summary().find('#summary-contribution-method').should('have.text', 'Proportional');
+    summary().find('#summary-remaining-before').should('have.text', '2900.00 €');
+    summary().find('#summary-remaining-after').should('have.text', '2900.00 €');
+    summary().find('#summary-savings h3 a').click();
+    app().find('#savings-section').should('be.visible');
+
     component('budget-contributions').find('.person-card').eq(0)
       .should('contain.text', '66.67 %')
       .and('contain.text', '600.00 €')
@@ -59,6 +70,7 @@ describe('critical budgeting workflows', () => {
     component('budget-income', 0).find('.entry-row.settlement').should('exist');
     component('budget-personal-expense', 1).find('.entry-row.settlement').should('exist');
     app().find('#household-total-amount').should('have.text', '4500.00 €');
+    app().find('budget-summary').shadow().find('#summary-income-total').should('have.text', '4500.00 €');
 
     component('budget-contributions').find('.toggle-settlement').click();
     component('budget-contributions').find('.person-card').eq(0)

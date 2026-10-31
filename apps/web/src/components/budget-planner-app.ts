@@ -37,9 +37,11 @@ import './budget-remaining-balance.ts';
 import './budget-savings.ts';
 import './budget-contributions.ts';
 import './budget-unallocated-assets.ts';
+import './budget-summary.ts';
 
 /** Page sections in display order; drives both the navigation and section headers. */
 const SECTIONS: { id: string; label: string; icon: IconName; accent: string }[] = [
+  { id: 'summary-section', label: 'Summary', icon: 'wallet', accent: '#4f46e5' },
   { id: 'household-section', label: 'Household', icon: 'house', accent: '#475569' },
   { id: 'income-section', label: 'Income', icon: 'trendingUp', accent: '#059669' },
   { id: 'personal-expense-section', label: 'Personal expenses', icon: 'creditCard', accent: '#e11d48' },
@@ -423,6 +425,12 @@ export class BudgetPlannerApp extends LitElement {
     this.renderRoot.querySelector(`#${id}`)?.scrollIntoView({ block: 'start' });
   }
 
+  private _onSummaryNavigate = (e: Event): void => {
+    const id = (e as CustomEvent<string>).detail;
+    this._activeSection = id;
+    this.renderRoot.querySelector(`#${id}`)?.scrollIntoView({ block: 'start' });
+  };
+
   /** Async task for loading budget data on startup */
   private _loadDataTask = new Task(this, {
     task: async () => {
@@ -781,6 +789,8 @@ export class BudgetPlannerApp extends LitElement {
         </nav>
 
         <main>
+          ${this._section('summary-section', html`<budget-summary @navigate-section=${this._onSummaryNavigate}></budget-summary>`)}
+
           ${this._section('household-section', html`
             <div id="household-people">
               ${people.map(
