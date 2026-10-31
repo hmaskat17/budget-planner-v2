@@ -136,4 +136,11 @@ describe('critical budgeting workflows', () => {
     cy.reload();
     component('budget-contributions').find('#contribution-method').should('have.value', 'fully-pooled');
   });
+
+  it('fills random test data from the temporary header button', () => {
+    app().find('#dev-fill-data').click();
+    app().find('budget-summary').shadow().find('#summary-income-total')
+      .invoke('text').should('not.equal', '0.00 €');
+    app().find('person-editor').its('length').should('be.within', 1, 2);
+  });
 });

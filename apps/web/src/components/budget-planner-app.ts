@@ -27,6 +27,7 @@ import {
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { localStorageAdapter } from '../adapters/local-storage-adapter.ts';
 import { icon, type IconName } from '../ui/icons.ts';
+import { generateSampleBudget } from '../dev/sample-data.ts';
 
 // Import child components
 import './person-editor.ts';
@@ -101,6 +102,22 @@ export class BudgetPlannerApp extends LitElement {
       font-size: 1.375rem;
       font-weight: 650;
       letter-spacing: -0.01em;
+    }
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .dev-fill {
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 8px 12px;
+      cursor: pointer;
+      color: var(--text-2);
+      background: var(--surface);
+      border: 1px dashed var(--muted);
+      border-radius: var(--radius-sm);
     }
     .tagline {
       margin: 2px 0 0;
@@ -475,6 +492,13 @@ export class BudgetPlannerApp extends LitElement {
     this.requestUpdate();
   }
 
+  // TEMPORARY: replaces all data with random sample data for manual testing.
+  private _fillSampleData(): void {
+    this._budgetData = generateSampleBudget();
+    localStorageAdapter.saveAll(this._budgetData);
+    this._updateContextValue();
+  }
+
   private _addPerson(): void {
     if (!coreCanAddPerson(this._budgetData.people)) {
       return;
@@ -759,6 +783,9 @@ export class BudgetPlannerApp extends LitElement {
             <p class="tagline">Plan income, expenses and savings together</p>
           </div>
         </div>
+        <button type="button" id="dev-fill-data" class="dev-fill" @click=${() => this._fillSampleData()}>
+          Fill test data
+        </button>
       </header>
 
       <div class="layout">
