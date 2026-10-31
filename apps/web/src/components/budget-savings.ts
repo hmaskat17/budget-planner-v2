@@ -6,12 +6,12 @@ import {
   calculateRemainingBalances,
   calculateSavingsAllocation,
   calculateSavingsPool,
-  createId,
-  formatAmount
+  createId
 } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { baseStyles } from '../ui/shared-styles.ts';
 import { icon } from '../ui/icons.ts';
+import { LocalizeController, money, percent, t } from '../i18n/index.ts';
 
 /**
  * Unified Savings Component holding:
@@ -148,6 +148,8 @@ export class BudgetSavings extends LitElement {
   @consume({ context: budgetContext, subscribe: true })
   budget?: BudgetContextValue;
 
+  protected readonly _localize = new LocalizeController(this);
+
   private _getPersonSavingsData(personId: string): PersonSavingsData {
     return (
       this.budget?.data.personalSavingsByPerson[personId] ?? {
@@ -282,15 +284,15 @@ export class BudgetSavings extends LitElement {
           ${personCalcs.map(
             ({ person, pData, remaining, contribution, personalPool, allocation }) => html`
               <div class="savings-card" data-person-id=${person.id}>
-                <h3>${icon('user', 16)}${person.name}'s savings</h3>
+                <h3>${icon('user', 16)}${t('savings.personTitle', { name: person.name })}</h3>
 
                 <div class="stat-row">
-                  <span>Remaining money</span>
-                  <span class="person-remaining-val">${formatAmount(remaining)} €</span>
+                  <span>${t('savings.remainingMoney')}</span>
+                  <span class="person-remaining-val">${money(remaining)}</span>
                 </div>
 
                 <div class="contribution-section">
-                  <div class="contribution-label">Contribution to shared savings</div>
+                  <div class="contribution-label">${t('savings.sharedContribution')}</div>
                   <div class="contribution-inputs">
                     <input
                       type="number"
@@ -306,14 +308,14 @@ export class BudgetSavings extends LitElement {
                     />
                     <span>% =</span>
                     <span class="contribution-amount person-contrib-amount">
-                      ${formatAmount(contribution)} €
+                      ${money(contribution)}
                     </span>
                   </div>
                 </div>
 
                 <div class="stat-row subtle">
-                  <span>Personal savings pool</span>
-                  <span class="person-pool-val">${formatAmount(personalPool)} €</span>
+                  <span>${t('savings.personalPool')}</span>
+                  <span class="person-pool-val">${money(personalPool)}</span>
                 </div>
 
                 <div class="items-list personal-items-list">
@@ -324,7 +326,7 @@ export class BudgetSavings extends LitElement {
                       <div class="savings-item-row" data-item-id=${item.id}>
                         <input
                           type="text"
-                          placeholder="Goal name"
+                          placeholder=${t('savings.goalName')}
                           .value=${item.name}
                           @input=${(e: Event) =>
                             this.updatePersonalGoalName(
@@ -349,13 +351,13 @@ export class BudgetSavings extends LitElement {
                         />
                         <span>%</span>
                         <span class="savings-item-amount item-calc-amount">
-                          ${formatAmount(itemVal)} €
+                          ${money(itemVal)}
                         </span>
                         <button
                           type="button"
                           class="remove-item-btn"
-                          title="Remove goal"
-                          aria-label="Remove goal"
+                          title=${t('savings.removeGoal')}
+                          aria-label=${t('savings.removeGoal')}
                           @click=${() => this.removePersonalGoal(person.id, index)}
                         >
                           ${icon('trash', 16)}
@@ -370,23 +372,24 @@ export class BudgetSavings extends LitElement {
                   class="add-item-btn"
                   @click=${() => this.addPersonalGoal(person.id)}
                 >
-                  ${icon('plus', 14)}Add personal goal
+                  ${icon('plus', 14)}${t('savings.addPersonalGoal')}
                 </button>
 
                 <div class="allocation-summary person-summary">
                   <div class="summary-bar">
-                    <span>Allocated: <strong>${formatAmount(allocation.allocatedPercent)}%</strong></span>
+                    <span>${t('savings.allocated')} <strong>${percent(allocation.allocatedPercent)}</strong></span>
                     <span>
-                      Unallocated:
-                      <strong>${formatAmount(allocation.unallocatedPercent)}%</strong>
-                      (${formatAmount(allocation.unallocatedAmount)} €)
+                      ${t('savings.unallocated')}
+                      <strong>${percent(allocation.unallocatedPercent)}</strong>
+                      (${money(allocation.unallocatedAmount)})
                     </span>
                   </div>
                   ${allocation.isOverallocated
                     ? html`
                         <div class="allocation-warning">
-                          ${icon('alert', 14)}Total allocated percentage exceeds 100%
-                          (${formatAmount(allocation.allocatedPercent)}%)
+                          ${icon('alert', 14)}${t('savings.overallocated', {
+                            percent: percent(allocation.allocatedPercent)
+                          })}
                         </div>
                       `
                     : ''}
@@ -397,11 +400,11 @@ export class BudgetSavings extends LitElement {
         </div>
 
         <div class="shared-savings-card">
-          <h3>${icon('users', 16)}Shared household savings</h3>
+          <h3>${icon('users', 16)}${t('savings.sharedTitle')}</h3>
 
           <div class="stat-row highlight">
-            <span>Total pooled shared savings</span>
-            <span class="shared-pool-val">${formatAmount(sharedPool)} €</span>
+            <span>${t('savings.pooled')}</span>
+            <span class="shared-pool-val">${money(sharedPool)}</span>
           </div>
 
           <div class="items-list shared-items-list">
@@ -411,7 +414,7 @@ export class BudgetSavings extends LitElement {
                 <div class="savings-item-row" data-item-id=${item.id}>
                   <input
                     type="text"
-                    placeholder="Goal name"
+                    placeholder=${t('savings.goalName')}
                     .value=${item.name}
                     @input=${(e: Event) =>
                       this.updateSharedGoalName(index, (e.target as HTMLInputElement).value)}
@@ -428,13 +431,13 @@ export class BudgetSavings extends LitElement {
                   />
                   <span>%</span>
                   <span class="savings-item-amount item-calc-amount">
-                    ${formatAmount(itemVal)} €
+                    ${money(itemVal)}
                   </span>
                   <button
                     type="button"
                     class="remove-item-btn"
-                    title="Remove goal"
-                    aria-label="Remove goal"
+                    title=${t('savings.removeGoal')}
+                    aria-label=${t('savings.removeGoal')}
                     @click=${() => this.removeSharedGoal(index)}
                   >
                     ${icon('trash', 16)}
@@ -449,23 +452,24 @@ export class BudgetSavings extends LitElement {
             class="add-item-btn"
             @click=${() => this.addSharedGoal()}
           >
-            ${icon('plus', 14)}Add shared goal
+            ${icon('plus', 14)}${t('savings.addSharedGoal')}
           </button>
 
           <div class="allocation-summary shared-summary">
             <div class="summary-bar">
-              <span>Allocated: <strong>${formatAmount(sharedAllocation.allocatedPercent)}%</strong></span>
+              <span>${t('savings.allocated')} <strong>${percent(sharedAllocation.allocatedPercent)}</strong></span>
               <span>
-                Unallocated:
-                <strong>${formatAmount(sharedAllocation.unallocatedPercent)}%</strong>
-                (${formatAmount(sharedAllocation.unallocatedAmount)} €)
+                ${t('savings.unallocated')}
+                <strong>${percent(sharedAllocation.unallocatedPercent)}</strong>
+                (${money(sharedAllocation.unallocatedAmount)})
               </span>
             </div>
             ${sharedAllocation.isOverallocated
               ? html`
                   <div class="allocation-warning">
-                    ${icon('alert', 14)}Total allocated percentage exceeds 100%
-                    (${formatAmount(sharedAllocation.allocatedPercent)}%)
+                    ${icon('alert', 14)}${t('savings.overallocated', {
+                      percent: percent(sharedAllocation.allocatedPercent)
+                    })}
                   </div>
                 `
               : ''}

@@ -3,16 +3,17 @@ import type { ScenarioState } from '@budget-planner/core';
 import { createDefaultScenario, createId } from '@budget-planner/core';
 import { ScenarioBudgetElement } from './scenario-budget.ts';
 import type { BudgetContextValue } from '../context/budget-context.ts';
+import { t } from '../i18n/index.ts';
 
 /** Self-contained income budget component; consumes budgetContext. */
 @customElement('budget-income')
 export class BudgetIncome extends ScenarioBudgetElement {
   override get entryPlaceholder(): string {
-    return 'Income source';
+    return t('income.placeholder');
   }
 
   override get addEntryLabel(): string {
-    return 'Add new income';
+    return t('income.add');
   }
 
   override getScenarioState(budget: BudgetContextValue): ScenarioState {

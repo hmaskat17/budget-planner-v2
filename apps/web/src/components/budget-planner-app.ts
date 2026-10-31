@@ -19,7 +19,6 @@ import {
   canAddPerson as coreCanAddPerson,
   createDefaultScenario,
   createId,
-  formatAmount,
   removePerson as coreRemovePerson,
   removeSettlementAdjustments,
   renamePerson as coreRenamePerson
@@ -35,8 +34,11 @@ import {
 } from '../adapters/theme-preference.ts';
 import { icon, type IconName } from '../ui/icons.ts';
 import { generateSampleBudget } from '../dev/sample-data.ts';
+import { LocalizeController, money, t } from '../i18n/index.ts';
+import type { MessageKey } from '../i18n/en.ts';
 
 // Import child components
+import './locale-settings.ts';
 import './person-editor.ts';
 import './budget-income.ts';
 import './budget-personal-expense.ts';
@@ -48,16 +50,16 @@ import './budget-unallocated-assets.ts';
 import './budget-summary.ts';
 
 /** Page sections in display order; drives both the navigation and section headers. */
-const SECTIONS: { id: string; label: string; icon: IconName; accent: string }[] = [
-  { id: 'summary-section', label: 'Summary', icon: 'wallet', accent: '#4f46e5' },
-  { id: 'household-section', label: 'Household', icon: 'house', accent: '#475569' },
-  { id: 'income-section', label: 'Income', icon: 'trendingUp', accent: '#059669' },
-  { id: 'personal-expense-section', label: 'Personal expenses', icon: 'creditCard', accent: '#e11d48' },
-  { id: 'shared-expense-section', label: 'Shared expenses', icon: 'receipt', accent: '#d97706' },
-  { id: 'remaining-balance-section', label: 'Remaining balance', icon: 'wallet', accent: '#0284c7' },
-  { id: 'savings-section', label: 'Savings', icon: 'piggyBank', accent: '#7c3aed' },
-  { id: 'proportional-contributions-section', label: 'Contributions', icon: 'arrowsLeftRight', accent: '#4f46e5' },
-  { id: 'unallocated-assets-section', label: 'Unallocated assets', icon: 'landmark', accent: '#0d9488' }
+const SECTIONS: { id: string; labelKey: MessageKey; icon: IconName; accent: string }[] = [
+  { id: 'summary-section', labelKey: 'section.summary', icon: 'wallet', accent: '#4f46e5' },
+  { id: 'household-section', labelKey: 'section.household', icon: 'house', accent: '#475569' },
+  { id: 'income-section', labelKey: 'section.income', icon: 'trendingUp', accent: '#059669' },
+  { id: 'personal-expense-section', labelKey: 'section.personalExpenses', icon: 'creditCard', accent: '#e11d48' },
+  { id: 'shared-expense-section', labelKey: 'section.sharedExpenses', icon: 'receipt', accent: '#d97706' },
+  { id: 'remaining-balance-section', labelKey: 'section.remainingBalance', icon: 'wallet', accent: '#0284c7' },
+  { id: 'savings-section', labelKey: 'section.savings', icon: 'piggyBank', accent: '#7c3aed' },
+  { id: 'proportional-contributions-section', labelKey: 'section.contributions', icon: 'arrowsLeftRight', accent: '#4f46e5' },
+  { id: 'unallocated-assets-section', labelKey: 'section.unallocatedAssets', icon: 'landmark', accent: '#0d9488' }
 ];
 
 /**
@@ -428,6 +430,8 @@ export class BudgetPlannerApp extends LitElement {
   @state()
   private _themePreference: ThemePreference = loadThemePreference();
 
+  protected readonly _localize = new LocalizeController(this);
+
   @state()
   private _budgetData: BudgetData = {
     people: [{ id: 'person-1', name: 'Person 1' }],
@@ -626,7 +630,7 @@ export class BudgetPlannerApp extends LitElement {
       return;
     }
     const nextIndex = this._budgetData.people.length + 1;
-    const newPerson = { id: `person-${nextIndex}`, name: `Person ${nextIndex}` };
+    const newPerson = { id: `person-${nextIndex}`, name: t('person.defaultName', { n: nextIndex }) };
     const result = coreAddPerson(this._budgetData.people, newPerson);
     if (result.issues.length === 0) {
       const newIncomeScenario = createDefaultScenario(createId('scenario'));
@@ -878,8 +882,8 @@ export class BudgetPlannerApp extends LitElement {
 
   override render() {
     return this._loadDataTask.render({
-      pending: () => html`<div class="loading-container">Loading budget planner...</div>`,
-      error: (e) => html`<div class="error-container">Failed to load budget data: ${String(e)}</div>`,
+      pending: () => html`<div class="loading-container">${t('app.loading')}</div>`,
+      error: (e) => html`<div class="error-container">${t('app.loadError', { error: String(e) })}</div>`,
       complete: () => this._renderApp()
     });
   }
@@ -901,17 +905,18 @@ export class BudgetPlannerApp extends LitElement {
         <div class="brand">
           <span class="logo">${icon('wallet', 24)}</span>
           <div>
-            <h1>Budget Planner</h1>
-            <p class="tagline">Plan income, expenses and savings together</p>
+            <h1>${t('app.title')}</h1>
+            <p class="tagline">${t('app.tagline')}</p>
           </div>
         </div>
         <div class="header-actions">
-          <div class="appearance-controls" aria-label="Appearance settings">
-            <label for="color-scheme" class="theme-label">Theme</label>
+          <locale-settings></locale-settings>
+          <div class="appearance-controls" role="group" aria-label=${t('settings.appearance')}>
+            <label for="color-scheme" class="theme-label">${t('settings.theme')}</label>
             <select id="color-scheme" @change=${this._setColorScheme}>
               ${COLOR_SCHEMES.map(
-                ({ id, label }) =>
-                  html`<option value=${id} ?selected=${this._themePreference.colorScheme === id}>${label}</option>`
+                ({ id }) =>
+                  html`<option value=${id} ?selected=${this._themePreference.colorScheme === id}>${t(`theme.${id}`)}</option>`
               )}
             </select>
             <button
@@ -919,7 +924,7 @@ export class BudgetPlannerApp extends LitElement {
               id="color-mode"
               class="mode-toggle"
               role="switch"
-              aria-label="Dark mode"
+              aria-label=${t('settings.darkMode')}
               aria-checked=${this._themePreference.colorMode === 'dark' ? 'true' : 'false'}
               @click=${() => this._toggleColorMode()}
             >
@@ -930,7 +935,7 @@ export class BudgetPlannerApp extends LitElement {
       </header>
 
       <div class="layout">
-        <nav aria-label="Sections">
+        <nav aria-label=${t('nav.sections')}>
           <ul
             @pointerdown=${this._onNavPointerDown}
             @pointermove=${this._onNavPointerMove}
@@ -948,7 +953,7 @@ export class BudgetPlannerApp extends LitElement {
                     aria-current=${this._activeSection === s.id ? 'true' : 'false'}
                     @click=${(e: Event) => this._goToSection(e, s.id)}
                   >
-                    ${icon(s.icon, 18)}${s.label}
+                    ${icon(s.icon, 18)}${t(s.labelKey)}
                   </a>
                 </li>
               `
@@ -970,8 +975,8 @@ export class BudgetPlannerApp extends LitElement {
                           <button
                             type="button"
                             class="remove-person"
-                            title="Remove person"
-                            aria-label="Remove ${person.name}"
+                            title=${t('person.removeTitle')}
+                            aria-label=${t('person.removeLabel', { name: person.name })}
                             @click=${() => this._removePerson(person.id)}
                           >
                             ${icon('trash', 18)}
@@ -988,7 +993,7 @@ export class BudgetPlannerApp extends LitElement {
               ?hidden=${!canAdd}
               @click=${() => this._addPerson()}
             >
-              ${icon('plus', 16)}Add person
+              ${icon('plus', 16)}${t('person.add')}
             </button>
           `)}
 
@@ -1001,8 +1006,8 @@ export class BudgetPlannerApp extends LitElement {
               )}
             </div>
             <p id="household-total">
-              <span>Household income</span>
-              <strong id="household-total-amount">${formatAmount(totals.baseIncome)} €</strong>
+              <span>${t('income.household')}</span>
+              <strong id="household-total-amount">${money(totals.baseIncome)}</strong>
             </p>
           `)}
 
@@ -1015,8 +1020,8 @@ export class BudgetPlannerApp extends LitElement {
               )}
             </div>
             <p id="household-expense-total">
-              <span>Household personal expenses</span>
-              <strong id="household-expense-total-amount">${formatAmount(totals.personalExpenses)} €</strong>
+              <span>${t('expense.household')}</span>
+              <strong id="household-expense-total-amount">${money(totals.personalExpenses)}</strong>
             </p>
           `)}
 
@@ -1043,8 +1048,8 @@ export class BudgetPlannerApp extends LitElement {
               )}
             </div>
             <p id="household-assets-total">
-              <span>Household unallocated assets</span>
-              <strong id="household-assets-total-amount">${formatAmount(totals.assets)} €</strong>
+              <span>${t('assets.household')}</span>
+              <strong id="household-assets-total-amount">${money(totals.assets)}</strong>
             </p>
           `)}
         </main>
@@ -1052,7 +1057,7 @@ export class BudgetPlannerApp extends LitElement {
 
       <footer class="page-footer">
         <button type="button" id="dev-fill-data" class="dev-fill" @click=${() => this._fillSampleData()}>
-          Fill test data
+          ${t('app.fillTestData')}
         </button>
       </footer>
     `;
@@ -1064,7 +1069,7 @@ export class BudgetPlannerApp extends LitElement {
       <section id=${id} class="budget-section" style="--section-accent: ${meta.accent}">
         <div class="section-head">
           <span class="section-icon">${icon(meta.icon, 20)}</span>
-          <h2>${meta.label}</h2>
+          <h2>${t(meta.labelKey)}</h2>
         </div>
         ${body}
       </section>

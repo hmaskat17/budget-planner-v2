@@ -2,11 +2,14 @@ const app = () => cy.get('budget-planner-app').shadow();
 
 const component = (selector: string, index = 0) => app().find(selector).eq(index).shadow();
 
+const REGIONAL_PREFERENCE = { language: 'en', currency: 'EUR', numberLocale: 'en-US' };
+
 describe('critical budgeting workflows', () => {
   beforeEach(() => {
     cy.visit('/', {
       onBeforeLoad(window) {
         window.localStorage.clear();
+        window.localStorage.setItem('budget-planner-locale-preference', JSON.stringify(REGIONAL_PREFERENCE));
       }
     });
     app().find('#household-section').should('be.visible');
@@ -35,46 +38,46 @@ describe('critical budgeting workflows', () => {
     component('budget-shared-expense').find('input[placeholder="Expense source"]').type('Rent');
     component('budget-shared-expense').find('input[placeholder="Amount"]').clear().type('900');
 
-    app().find('#household-total-amount').should('have.text', '4500.00 €');
-    app().find('#household-expense-total-amount').should('have.text', '700.00 €');
+    app().find('#household-total-amount').should('have.text', '€4,500.00');
+    app().find('#household-expense-total-amount').should('have.text', '€700.00');
     component('budget-shared-expense').find('.household-total .total-amount')
-      .should('have.text', '900.00 €');
+      .should('have.text', '€900.00');
 
-    component('budget-remaining-balance').should('contain.text', '1600.00 €')
-      .and('contain.text', '1300.00 €')
-      .and('contain.text', '2900.00 €');
+    component('budget-remaining-balance').should('contain.text', '€1,600.00')
+      .and('contain.text', '€1,300.00')
+      .and('contain.text', '€2,900.00');
 
     const summary = () => app().find('budget-summary').shadow();
-    summary().find('#summary-income-total').should('have.text', '4500.00 €');
-    summary().find('#summary-networth-total').should('have.text', '4500.00 €');
-    summary().find('#summary-expenses-total').should('have.text', '1600.00 €');
-    summary().find('#summary-savings-total').should('have.text', '0.00 €');
+    summary().find('#summary-income-total').should('have.text', '€4,500.00');
+    summary().find('#summary-networth-total').should('have.text', '€4,500.00');
+    summary().find('#summary-expenses-total').should('have.text', '€1,600.00');
+    summary().find('#summary-savings-total').should('have.text', '€0.00');
     summary().find('#summary-contribution-method').should('have.text', 'Proportional');
-    summary().find('#summary-remaining-before').should('have.text', '2900.00 €');
-    summary().find('#summary-remaining-after').should('have.text', '2900.00 €');
+    summary().find('#summary-remaining-before').should('have.text', '€2,900.00');
+    summary().find('#summary-remaining-after').should('have.text', '€2,900.00');
     summary().find('#summary-savings h3 a').click();
     app().find('#savings-section').should('be.visible');
 
     component('budget-contributions').find('.person-card').eq(0)
-      .should('contain.text', '66.67 %')
-      .and('contain.text', '600.00 €')
-      .and('contain.text', 'Owed 300.00 €');
+      .should('contain.text', '66.67%')
+      .and('contain.text', '€600.00')
+      .and('contain.text', 'Owed €300.00');
     component('budget-contributions').find('.person-card').eq(1)
-      .should('contain.text', '33.33 %')
-      .and('contain.text', '300.00 €')
-      .and('contain.text', 'Owes 300.00 €');
+      .should('contain.text', '33.33%')
+      .and('contain.text', '€300.00')
+      .and('contain.text', 'Owes €300.00');
 
     component('budget-contributions').find('.toggle-settlement').click();
     component('budget-contributions').find('.toggle-settlement')
       .should('contain.text', 'Remove settlement from income and personal expenses');
     component('budget-income', 0).find('.entry-row.settlement').should('exist');
     component('budget-personal-expense', 1).find('.entry-row.settlement').should('exist');
-    app().find('#household-total-amount').should('have.text', '4500.00 €');
-    app().find('budget-summary').shadow().find('#summary-income-total').should('have.text', '4500.00 €');
+    app().find('#household-total-amount').should('have.text', '€4,500.00');
+    app().find('budget-summary').shadow().find('#summary-income-total').should('have.text', '€4,500.00');
 
     component('budget-contributions').find('.toggle-settlement').click();
     component('budget-contributions').find('.person-card').eq(0)
-      .should('contain.text', 'Owed 300.00 €');
+      .should('contain.text', 'Owed €300.00');
     component('budget-income', 0).find('.entry-row.settlement').should('not.exist');
     component('budget-personal-expense', 1).find('.entry-row.settlement').should('not.exist');
   });
@@ -86,18 +89,18 @@ describe('critical budgeting workflows', () => {
     component('budget-income').find('button[aria-label="New scenario"]').click();
     component('budget-income').find('.scenario-chip-rename').clear().type('Raise{enter}');
     component('budget-income').find('input[placeholder="Amount"]').clear().type('4000');
-    app().find('#household-total-amount').should('have.text', '4000.00 €');
+    app().find('#household-total-amount').should('have.text', '€4,000.00');
 
     component('budget-income').find('.scenario-chip-label').contains('Default').click();
     component('budget-income').find('input[placeholder="Amount"]').should('have.value', '3000');
-    app().find('#household-total-amount').should('have.text', '3000.00 €');
+    app().find('#household-total-amount').should('have.text', '€3,000.00');
 
     cy.reload();
     app().find('#household-section').should('be.visible');
     component('budget-income').find('.scenario-chip-label').should('contain.text', 'Default');
     component('budget-income').find('.scenario-chip-label').should('contain.text', 'Raise');
     component('budget-income').find('input[placeholder="Amount"]').should('have.value', '3000');
-    app().find('#household-total-amount').should('have.text', '3000.00 €');
+    app().find('#household-total-amount').should('have.text', '€3,000.00');
   });
 
   it('switches contribution methods, edits a custom split, and persists the selection', () => {
@@ -117,9 +120,9 @@ describe('critical budgeting workflows', () => {
     component('budget-contributions').find('#contribution-method').select('equal');
     component('budget-income', 0).find('.entry-row.settlement').should('not.exist');
     component('budget-personal-expense', 1).find('.entry-row.settlement').should('not.exist');
-    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '450.00 €');
+    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '€450.00');
     component('budget-contributions').find('#contribution-method').select('equal-leftover');
-    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '1200.00 €');
+    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '€1,200.00');
     component('budget-contributions').find('#contribution-method').select('custom');
     component('budget-contributions').find('.person-card').eq(0).should('contain.text', 'Custom contribution')
       .and('not.contain.text', 'Custom split');
@@ -127,8 +130,8 @@ describe('critical budgeting workflows', () => {
       .should('have.length', 1);
     component('budget-contributions').find('input[aria-label="Person 1 custom contribution percentage"]')
       .clear().type('70.01').blur();
-    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '630.09 €');
-    component('budget-contributions').find('.person-card').eq(1).should('contain.text', '269.91 €');
+    component('budget-contributions').find('.person-card').eq(0).should('contain.text', '€630.09');
+    component('budget-contributions').find('.person-card').eq(1).should('contain.text', '€269.91');
 
     component('budget-contributions').find('#contribution-method').select('fully-pooled');
     component('budget-contributions').find('.pooled-note').should('be.visible');
@@ -161,7 +164,59 @@ describe('critical budgeting workflows', () => {
   it('fills random test data from the temporary header button', () => {
     app().find('#dev-fill-data').click();
     app().find('budget-summary').shadow().find('#summary-income-total')
-      .invoke('text').should('not.equal', '0.00 €');
+      .invoke('text').should('not.equal', '€0.00');
     app().find('person-editor').its('length').should('be.within', 1, 2);
+  });
+
+  describe('language, currency and number format', () => {
+    const openSettings = () => {
+      app().find('locale-settings').shadow().find('#locale-toggle').click();
+    };
+    const settings = () => app().find('locale-settings').shadow();
+
+    it('switches the language and persists it', () => {
+      openSettings();
+      settings().find('#language-select').select('fi');
+      cy.document().its('documentElement').should('have.attr', 'lang', 'fi');
+      app().find('h1').should('have.text', 'Budjettisuunnittelija');
+      app().find('#add-person').should('contain.text', 'Lisää henkilö');
+
+      settings().find('#language-select').select('sv');
+      app().find('h1').should('have.text', 'Budgetplaneraren');
+      app().find('#add-person').should('contain.text', 'Lägg till person');
+
+      cy.reload();
+      app().find('h1').should('have.text', 'Budgetplaneraren');
+      cy.window().its('localStorage')
+        .invoke('getItem', 'budget-planner-locale-preference')
+        .should('equal', JSON.stringify({ language: 'sv', currency: 'EUR', numberLocale: 'en-US' }));
+    });
+
+    it('changes the number format and searches for a currency by code', () => {
+      component('budget-income').find('input[placeholder="Amount"]').clear().type('1234.5');
+      app().find('#household-total-amount').should('have.text', '€1,234.50');
+
+      openSettings();
+      settings().find('#number-format-select').select('de-DE');
+      app().find('#household-total-amount').invoke('text')
+        .should('match', /^1\.234,50\s€$/);
+
+      settings().find('#currency-search').type('usd');
+      settings().find('.currency-option').should('have.length', 1).and('have.attr', 'data-currency', 'USD');
+      settings().find('#currency-search').type('{enter}');
+      app().find('#household-total-amount').invoke('text')
+        .should('match', /^1\.234,50\s\$$/);
+
+      settings().find('#currency-search').type('zzz');
+      settings().find('.currency-option').should('not.exist');
+    });
+
+    it('does not convert amounts when the currency changes', () => {
+      component('budget-income').find('input[placeholder="Amount"]').clear().type('100');
+      openSettings();
+      settings().find('#currency-search').type('gbp{enter}');
+      app().find('#household-total-amount').should('have.text', '£100.00');
+      component('budget-income').find('input[placeholder="Amount"]').should('have.value', '100');
+    });
   });
 });

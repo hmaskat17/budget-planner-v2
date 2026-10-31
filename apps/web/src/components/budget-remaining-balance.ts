@@ -1,10 +1,11 @@
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { consume } from '@lit/context';
-import { calculateRemainingBalances, formatAmount } from '@budget-planner/core';
+import { calculateRemainingBalances } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { baseStyles } from '../ui/shared-styles.ts';
 import { icon } from '../ui/icons.ts';
+import { LocalizeController, money, t } from '../i18n/index.ts';
 
 /**
  * Read-only view of each person's remaining money (income minus personal expenses minus their
@@ -42,6 +43,8 @@ export class BudgetRemainingBalance extends LitElement {
     `
   ];
 
+  protected readonly _localize = new LocalizeController(this);
+
   @consume({ context: budgetContext, subscribe: true })
   budget?: BudgetContextValue;
 
@@ -63,13 +66,13 @@ export class BudgetRemainingBalance extends LitElement {
         (row) => html`
           <div class="balance-row">
             <span class="name">${icon('user', 16)}${row.person.name}</span>
-            <span class="amount ${row.remaining < 0 ? 'negative' : ''}">${formatAmount(row.remaining)} €</span>
+            <span class="amount ${row.remaining < 0 ? 'negative' : ''}">${money(row.remaining)}</span>
           </div>
         `
       )}
       <p class="household-total">
-        <span>Household remaining</span>
-        <span class="total-amount ${balances.householdTotal < 0 ? 'negative' : ''}">${formatAmount(balances.householdTotal)} €</span>
+        <span>${t('balance.householdRemaining')}</span>
+        <span class="total-amount ${balances.householdTotal < 0 ? 'negative' : ''}">${money(balances.householdTotal)}</span>
       </p>
     `;
   }

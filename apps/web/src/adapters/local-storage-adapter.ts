@@ -9,6 +9,7 @@ import type {
   SharedSavingsData
 } from '@budget-planner/core';
 import { createDefaultScenario, createId } from '@budget-planner/core';
+import { t } from '../i18n/index.ts';
 
 const PERSONS_STORAGE_KEY = 'budget-planner-persons';
 const INCOME_STORAGE_KEY = 'budget-planner-income';
@@ -51,7 +52,7 @@ export const localStorageAdapter = {
     // Simulate brief async tick for task lifecycle
     await Promise.resolve();
 
-    const people = loadJson<Person[]>(PERSONS_STORAGE_KEY, [{ id: 'person-1', name: 'Person 1' }]);
+    const people = loadJson<Person[]>(PERSONS_STORAGE_KEY, [{ id: 'person-1', name: t('person.defaultName', { n: 1 }) }]);
 
     const incomeByPerson = loadJson<Record<string, ScenarioState>>(INCOME_STORAGE_KEY, {});
     const personalExpensesByPerson = loadJson<Record<string, ScenarioState>>(PERSONAL_EXPENSE_STORAGE_KEY, {});

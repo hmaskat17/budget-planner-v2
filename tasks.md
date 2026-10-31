@@ -23,7 +23,8 @@ Mark tasks `[x]` when done. Unsure ideas go in [Future / undecided](#future--und
 - [x] Web: Add other contribution types (see specs.md > Contributions methods); default is proportional.
 - [x] Web: Add a summary view for the key household totals, reusing domain calculations.
 - [x] Web: Add selectable color schemes and light/dark modes. Each color scheme will have it's own light and dark modes. Create 3-5 schemes.
-- [ ] Web: Add English and Finnish localization, including locale-aware number and currency formatting.
+- [x] Web: Add English, Finnish and Swedish localization, with browser-based defaults and user-selectable currency (display only, no conversion) and number format.
+- [ ] Web: Translate core validation issue messages once they are surfaced in the UI (e.g. import/export).
 - [ ] Web/Domain: Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
 
 ## Phase 4 - Web product review

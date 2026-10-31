@@ -2,10 +2,11 @@ import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { consume } from '@lit/context';
 import type { Entry } from '@budget-planner/core';
-import { entriesTotal, formatAmount } from '@budget-planner/core';
+import { entriesTotal } from '@budget-planner/core';
 import { scenarioStyles } from './scenario-budget.ts';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { icon } from '../ui/icons.ts';
+import { LocalizeController, money, t } from '../i18n/index.ts';
 
 /**
  * Per-person list of money and assets held elsewhere (other accounts, gold, cash).
@@ -14,6 +15,8 @@ import { icon } from '../ui/icons.ts';
 @customElement('budget-unallocated-assets')
 export class BudgetUnallocatedAssets extends LitElement {
   static override styles = scenarioStyles;
+
+  protected readonly _localize = new LocalizeController(this);
 
   @property({ type: String, attribute: 'person-id' })
   personId = '';
@@ -61,7 +64,7 @@ export class BudgetUnallocatedAssets extends LitElement {
     const entries = this.entries();
 
     return html`
-      <h3 class="person-name">${icon('user', 16)}${person?.name ?? 'Person'}</h3>
+      <h3 class="person-name">${icon('user', 16)}${person?.name ?? t('person.fallback')}</h3>
 
       <div class="entry-inputs">
         ${entries.map(
@@ -69,14 +72,14 @@ export class BudgetUnallocatedAssets extends LitElement {
             <div class="entry-row">
               <input
                 type="text"
-                placeholder="Asset (e.g. cash, gold)"
+                placeholder=${t('assets.placeholder')}
                 .value=${entry.name}
                 @input=${(e: Event) =>
                   this.updateEntryName(index, (e.target as HTMLInputElement).value)}
               />
               <input
                 type="number"
-                placeholder="Amount"
+                placeholder=${t('common.amount')}
                 .value=${String(entry.amount)}
                 @input=${(e: Event) =>
                   this.updateEntryAmount(index, (e.target as HTMLInputElement).value)}
@@ -84,8 +87,8 @@ export class BudgetUnallocatedAssets extends LitElement {
               <button
                 type="button"
                 class="remove-entry-input"
-                title="Remove"
-                aria-label="Remove"
+                title=${t('common.remove')}
+                aria-label=${t('common.remove')}
                 @click=${() => this.removeEntry(index)}
               >
                 ${icon('trash', 16)}
@@ -100,12 +103,12 @@ export class BudgetUnallocatedAssets extends LitElement {
         class="add-entry-button"
         @click=${() => this.addEntry()}
       >
-        ${icon('plus', 14)}Add new asset
+        ${icon('plus', 14)}${t('assets.add')}
       </button>
 
       <p class="person-total">
-        <span>Total</span>
-        <span class="total-amount">${formatAmount(this.total())} €</span>
+        <span>${t('common.total')}</span>
+        <span class="total-amount">${money(this.total())}</span>
       </p>
     `;
   }

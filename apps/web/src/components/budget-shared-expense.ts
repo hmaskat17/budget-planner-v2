@@ -2,10 +2,11 @@ import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { consume } from '@lit/context';
 import type { Scenario, ScenarioState, SharedExpenseEntry } from '@budget-planner/core';
-import { createId, entriesTotal, formatAmount } from '@budget-planner/core';
+import { createId, entriesTotal } from '@budget-planner/core';
 import { scenarioStyles } from './scenario-budget.ts';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { icon } from '../ui/icons.ts';
+import { LocalizeController, money, scenarioName, t } from '../i18n/index.ts';
 
 /**
  * Household-wide shared expense component. Unlike the per-person budgets, this mounts once:
@@ -68,6 +69,8 @@ export class BudgetSharedExpense extends LitElement {
 
   @consume({ context: budgetContext, subscribe: true })
   budget?: BudgetContextValue;
+
+  protected readonly _localize = new LocalizeController(this);
 
   @state()
   private _renamingScenarioId: string | null = null;
@@ -258,14 +261,14 @@ export class BudgetSharedExpense extends LitElement {
                       class="scenario-chip-label"
                       @click=${() => this.switchScenario(scenario.id)}
                     >
-                      ${scenario.name}
+                      ${scenarioName(scenario.name)}
                     </button>
                     <button
                       type="button"
                       class="scenario-chip-rename-trigger"
-                      title="Rename scenario"
-                      aria-label="Rename scenario"
-                      @click=${() => this.startRenameScenario(scenario.id, scenario.name)}
+                      title=${t('scenario.rename')}
+                      aria-label=${t('scenario.rename')}
+                      @click=${() => this.startRenameScenario(scenario.id, scenarioName(scenario.name))}
                     >
                       ${icon('pencil', 12)}
                     </button>
@@ -274,8 +277,8 @@ export class BudgetSharedExpense extends LitElement {
                           <button
                             type="button"
                             class="scenario-chip-delete"
-                            title="Delete scenario"
-                            aria-label="Delete scenario"
+                            title=${t('scenario.delete')}
+                            aria-label=${t('scenario.delete')}
                             @click=${() => this.deleteScenario(scenario.id)}
                           >
                             ${icon('x', 12)}
@@ -289,8 +292,8 @@ export class BudgetSharedExpense extends LitElement {
         <button
           type="button"
           class="scenario-chip-add"
-          title="New scenario"
-          aria-label="New scenario"
+          title=${t('scenario.new')}
+          aria-label=${t('scenario.new')}
           @click=${() => this.addScenario()}
         >
           ${icon('plus', 14)}
@@ -303,7 +306,7 @@ export class BudgetSharedExpense extends LitElement {
             <div class="entry-row">
               <input
                 type="text"
-                placeholder="Expense source"
+                placeholder=${t('expense.placeholder')}
                 required
                 .value=${entry.name}
                 @input=${(e: Event) =>
@@ -311,7 +314,7 @@ export class BudgetSharedExpense extends LitElement {
               />
               <input
                 type="number"
-                placeholder="Amount"
+                placeholder=${t('common.amount')}
                 required
                 .value=${String(entry.amount)}
                 @input=${(e: Event) =>
@@ -335,8 +338,8 @@ export class BudgetSharedExpense extends LitElement {
               <button
                 type="button"
                 class="remove-entry-input"
-                title="Remove"
-                aria-label="Remove"
+                title=${t('common.remove')}
+                aria-label=${t('common.remove')}
                 @click=${() => this.removeEntry(index)}
               >
                 ${icon('trash', 16)}
@@ -349,7 +352,7 @@ export class BudgetSharedExpense extends LitElement {
           class="add-entry-button"
           @click=${() => this.addEntry()}
         >
-          ${icon('plus', 14)}Add new shared expense
+          ${icon('plus', 14)}${t('shared.add')}
         </button>
       </div>
 
@@ -358,15 +361,15 @@ export class BudgetSharedExpense extends LitElement {
           (person) => html`
             <div class="person-subtotal-row">
               <span>${person.name}</span>
-              <span data-person-subtotal=${person.id}>${formatAmount(this.personTotal(person.id))} €</span>
+              <span data-person-subtotal=${person.id}>${money(this.personTotal(person.id))}</span>
             </div>
           `
         )}
       </div>
 
       <p class="household-total">
-        <span>Combined shared expenses</span>
-        <span class="total-amount">${formatAmount(this.total())} €</span>
+        <span>${t('shared.combined')}</span>
+        <span class="total-amount">${money(this.total())}</span>
       </p>
     `;
   }

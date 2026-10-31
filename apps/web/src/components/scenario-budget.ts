@@ -5,7 +5,6 @@ import type { Scenario, ScenarioState } from '@budget-planner/core';
 import {
   createDefaultScenario as coreCreateDefaultScenario,
   createId,
-  formatAmount,
   scenarioTotal,
   setSettlementEntry,
   removeSettlementEntry,
@@ -14,8 +13,9 @@ import {
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { baseStyles } from '../ui/shared-styles.ts';
 import { icon } from '../ui/icons.ts';
+import { LocalizeController, money, scenarioName, settlementName, t } from '../i18n/index.ts';
 
-export { formatAmount, createId, SETTLEMENT_ENTRY_NAME };
+export { createId, SETTLEMENT_ENTRY_NAME };
 
 /** Shared styles for scenario chips and entry rows */
 export const scenarioStyles = [
@@ -114,6 +114,8 @@ export const scenarioStyles = [
  */
 export abstract class ScenarioBudgetElement extends LitElement {
   static override styles = scenarioStyles;
+
+  protected readonly _localize = new LocalizeController(this);
 
   @property({ type: String, attribute: 'person-id' })
   personId = '';
@@ -305,7 +307,7 @@ export abstract class ScenarioBudgetElement extends LitElement {
     const activeScenario = this.getActiveScenario();
 
     return html`
-      <h3 class="person-name">${icon('user', 16)}${person?.name ?? 'Person'}</h3>
+      <h3 class="person-name">${icon('user', 16)}${person?.name ?? t('person.fallback')}</h3>
 
       <div class="scenario-chips">
         ${state.scenarios.map((scenario) => {
@@ -335,14 +337,14 @@ export abstract class ScenarioBudgetElement extends LitElement {
                       class="scenario-chip-label"
                       @click=${() => this.switchScenario(scenario.id)}
                     >
-                      ${scenario.name}
+                      ${scenarioName(scenario.name)}
                     </button>
                     <button
                       type="button"
                       class="scenario-chip-rename-trigger"
-                      title="Rename scenario"
-                      aria-label="Rename scenario"
-                      @click=${() => this.startRenameScenario(scenario.id, scenario.name)}
+                      title=${t('scenario.rename')}
+                      aria-label=${t('scenario.rename')}
+                      @click=${() => this.startRenameScenario(scenario.id, scenarioName(scenario.name))}
                     >
                       ${icon('pencil', 12)}
                     </button>
@@ -351,8 +353,8 @@ export abstract class ScenarioBudgetElement extends LitElement {
                           <button
                             type="button"
                             class="scenario-chip-delete"
-                            title="Delete scenario"
-                            aria-label="Delete scenario"
+                            title=${t('scenario.delete')}
+                            aria-label=${t('scenario.delete')}
                             @click=${() => this.deleteScenario(scenario.id)}
                           >
                             ${icon('x', 12)}
@@ -366,8 +368,8 @@ export abstract class ScenarioBudgetElement extends LitElement {
         <button
           type="button"
           class="scenario-chip-add"
-          title="New scenario"
-          aria-label="New scenario"
+          title=${t('scenario.new')}
+          aria-label=${t('scenario.new')}
           @click=${() => this.addScenario()}
         >
           ${icon('plus', 14)}
@@ -385,13 +387,13 @@ export abstract class ScenarioBudgetElement extends LitElement {
                       placeholder=${this.entryPlaceholder}
                       required
                       ?readonly=${entry.isSettlement}
-                      .value=${entry.name}
+                      .value=${entry.isSettlement ? settlementName(entry.name) : entry.name}
                       @input=${(e: Event) =>
                         this.updateEntryName(index, (e.target as HTMLInputElement).value)}
                     />
                     <input
                       type="number"
-                      placeholder="Amount"
+                      placeholder=${t('common.amount')}
                       required
                       ?readonly=${entry.isSettlement}
                       .value=${String(entry.amount)}
@@ -404,8 +406,8 @@ export abstract class ScenarioBudgetElement extends LitElement {
                           <button
                             type="button"
                             class="remove-entry-input"
-                            title="Remove"
-                            aria-label="Remove"
+                            title=${t('common.remove')}
+                            aria-label=${t('common.remove')}
                             @click=${() => this.removeEntry(index)}
                           >
                             ${icon('trash', 16)}
@@ -426,8 +428,8 @@ export abstract class ScenarioBudgetElement extends LitElement {
         : ''}
 
       <p class="person-total">
-        <span>Total</span>
-        <span class="total-amount">${formatAmount(this.total())} €</span>
+        <span>${t('common.total')}</span>
+        <span class="total-amount">${money(this.total())}</span>
       </p>
     `;
   }

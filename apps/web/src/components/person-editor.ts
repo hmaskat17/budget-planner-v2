@@ -3,6 +3,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { consume } from '@lit/context';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { icon } from '../ui/icons.ts';
+import { LocalizeController, t } from '../i18n/index.ts';
 
 /** Edits a person's shared display name; consumes budgetContext. */
 @customElement('person-editor')
@@ -44,6 +45,8 @@ export class PersonEditor extends LitElement {
     }
   `;
 
+  protected readonly _localize = new LocalizeController(this);
+
   @property({ type: String, attribute: 'person-id' })
   personId = '';
 
@@ -69,8 +72,8 @@ export class PersonEditor extends LitElement {
         <input
           type="text"
           .value=${person.name}
-          placeholder="Name"
-          aria-label="Person name"
+          placeholder=${t('person.namePlaceholder')}
+          aria-label=${t('person.nameLabel')}
           @input=${this._onInput}
         />
       </label>

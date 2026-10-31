@@ -2,26 +2,19 @@ import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { consume } from '@lit/context';
 import type { ContributionMethod } from '@budget-planner/core';
-import { calculateContributions, formatAmount } from '@budget-planner/core';
+import { calculateContributions } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { baseStyles } from '../ui/shared-styles.ts';
 import { icon } from '../ui/icons.ts';
+import { LocalizeController, money, percent, t } from '../i18n/index.ts';
 
-const CONTRIBUTION_METHODS: { value: ContributionMethod; label: string }[] = [
-  { value: 'equal', label: 'Equal' },
-  { value: 'proportional', label: 'Proportional' },
-  { value: 'equal-leftover', label: 'Equal leftover' },
-  { value: 'fully-pooled', label: 'Fully pooled' },
-  { value: 'custom', label: 'Custom split' }
+const CONTRIBUTION_METHODS: ContributionMethod[] = [
+  'equal',
+  'proportional',
+  'equal-leftover',
+  'fully-pooled',
+  'custom'
 ];
-
-const CONTRIBUTION_LABELS: Record<ContributionMethod, string> = {
-  equal: 'Equal contribution',
-  proportional: 'Proportional contribution',
-  'equal-leftover': 'Contribution for equal leftover',
-  'fully-pooled': 'Household contribution',
-  custom: 'Custom contribution'
-};
 
 /**
  * Calculates household shared-expense contributions using the selected contribution method.
@@ -148,6 +141,8 @@ export class BudgetContributions extends LitElement {
   @consume({ context: budgetContext, subscribe: true })
   budget?: BudgetContextValue;
 
+  protected readonly _localize = new LocalizeController(this);
+
   override render() {
     if (!this.budget) {
       return html``;
@@ -173,20 +168,20 @@ export class BudgetContributions extends LitElement {
     const hasBalance = rows.some(({ balance }) => Math.abs(balance) > 0.005);
     return html`
       <div class="method-picker">
-        <label for="contribution-method">Contribution method</label>
+        <label for="contribution-method">${t('contributions.method')}</label>
         <select
           id="contribution-method"
           @change=${(event: Event) => {
             const value = (event.currentTarget as HTMLSelectElement).value;
-            const method = CONTRIBUTION_METHODS.find(({ value: optionValue }) => optionValue === value)?.value;
+            const method = CONTRIBUTION_METHODS.find((optionValue) => optionValue === value);
             if (method) {
               this.budget?.setContributionMethod(method);
             }
           }}
         >
           ${CONTRIBUTION_METHODS.map(
-            ({ value, label }) => html`
-              <option value=${value} .selected=${contributionSettings.method === value}>${label}</option>
+            (value) => html`
+              <option value=${value} .selected=${contributionSettings.method === value}>${t(`method.${value}`)}</option>
             `
           )}
         </select>
@@ -194,46 +189,48 @@ export class BudgetContributions extends LitElement {
 
       <div class="household-summary">
         <div class="summary-stat">
-          <span>Total household income</span>
-          <strong>${formatAmount(totalIncome)} €</strong>
+          <span>${t('contributions.totalIncome')}</span>
+          <strong>${money(totalIncome)}</strong>
         </div>
         <div class="summary-stat">
-          <span>Total household expenses</span>
-          <strong>${formatAmount(totalSharedExpenses)} €</strong>
+          <span>${t('contributions.totalExpenses')}</span>
+          <strong>${money(totalSharedExpenses)}</strong>
         </div>
       </div>
 
       ${contributionSettings.method === 'fully-pooled'
-        ? html`<p class="pooled-note">
-            Income and shared expenses belong to the household as a whole, so there is no individual balance to settle.
-          </p>`
+        ? html`<p class="pooled-note">${t('contributions.pooledNote')}</p>`
         : html`<div class="people-columns">
         ${rows.map(
           ({ person, income, percent: propContributionPercent, share: expenseShare, paid: alreadyPaid, balance }) => {
             let badgeClass = 'status-badge settled';
-            let badgeText = 'Settled (0.00 €)';
+            let badgeText = t('contributions.settled', { amount: money(0) });
 
             if (balance > 0.005) {
               badgeClass = 'status-badge owes';
-              badgeText = `Owes ${formatAmount(balance)} €${applied ? ' (in personal expenses)' : ''}`;
+              badgeText = t(applied ? 'contributions.owesApplied' : 'contributions.owes', {
+                amount: money(balance)
+              });
             } else if (balance < -0.005) {
               badgeClass = 'status-badge owed';
-              badgeText = `Owed ${formatAmount(Math.abs(balance))} €${applied ? ' (in income)' : ''}`;
+              badgeText = t(applied ? 'contributions.owedApplied' : 'contributions.owed', {
+                amount: money(Math.abs(balance))
+              });
             }
 
             return html`
               <div class="person-card">
                 <h3>${icon('user', 16)}${person.name}</h3>
                 <div class="metric-row">
-                  <span>Person's income</span>
-                  <span>${formatAmount(income)} €</span>
+                  <span>${t('contributions.personIncome')}</span>
+                  <span>${money(income)}</span>
                 </div>
                 <div class="metric-row">
                   ${contributionSettings.method === 'custom'
                     ? html`<label for="custom-percent-${person.id}">
-                        ${CONTRIBUTION_LABELS[contributionSettings.method]}
+                        ${t(`contribution.label.${contributionSettings.method}`)}
                       </label>`
-                    : html`<span>${CONTRIBUTION_LABELS[contributionSettings.method]}</span>`}
+                    : html`<span>${t(`contribution.label.${contributionSettings.method}`)}</span>`}
                   <span>
                     ${contributionSettings.method === 'custom'
                       ? html`<input
@@ -244,27 +241,27 @@ export class BudgetContributions extends LitElement {
                           max="100"
                           step="0.01"
                           .value=${String(contributionSettings.customPercentByPerson[person.id] ?? 0)}
-                          aria-label="${person.name} custom contribution percentage"
+                          aria-label=${t('contributions.customPercentLabel', { name: person.name })}
                           @change=${(event: Event) =>
                             this.budget?.setCustomContributionPercent(
                               person.id,
                               (event.currentTarget as HTMLInputElement).valueAsNumber
                             )}
                         /> %`
-                      : html`${formatAmount(propContributionPercent)} %`}
+                      : html`${percent(propContributionPercent)}`}
                   </span>
                 </div>
                 <div class="metric-row">
-                  <span>Share of expenses</span>
-                  <span>${formatAmount(expenseShare)} €</span>
+                  <span>${t('contributions.expenseShare')}</span>
+                  <span>${money(expenseShare)}</span>
                 </div>
                 <div class="metric-row">
-                  <span>Already paid expenses</span>
-                  <span>${formatAmount(alreadyPaid)} €</span>
+                  <span>${t('contributions.alreadyPaid')}</span>
+                  <span>${money(alreadyPaid)}</span>
                 </div>
                 <div class="metric-row highlight">
-                  <span>Balance to be settled</span>
-                  <span>${formatAmount(balance)} €</span>
+                  <span>${t('contributions.balance')}</span>
+                  <span>${money(balance)}</span>
                 </div>
                 <div class="settlement-action">
                   <span class=${badgeClass}>${badgeText}</span>
@@ -289,8 +286,8 @@ export class BudgetContributions extends LitElement {
         }}
       >
         ${applied ? icon('x', 16) : icon('arrowsLeftRight', 16)}${applied
-          ? 'Remove settlement from income and personal expenses'
-          : 'Add settlement to income and personal expenses'}
+          ? t('contributions.removeSettlement')
+          : t('contributions.applySettlement')}
       </button>`
         : ''}
     `;
