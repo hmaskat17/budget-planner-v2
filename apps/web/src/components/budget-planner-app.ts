@@ -26,6 +26,13 @@ import {
 } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { localStorageAdapter } from '../adapters/local-storage-adapter.ts';
+import {
+  applyThemePreference,
+  COLOR_SCHEMES,
+  loadThemePreference,
+  saveThemePreference,
+  type ThemePreference
+} from '../adapters/theme-preference.ts';
 import { icon, type IconName } from '../ui/icons.ts';
 import { generateSampleBudget } from '../dev/sample-data.ts';
 
@@ -118,6 +125,84 @@ export class BudgetPlannerApp extends LitElement {
       background: var(--surface);
       border: 1px dashed var(--muted);
       border-radius: var(--radius-sm);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 16px;
+    }
+    .appearance-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .theme-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .appearance-controls select {
+      min-width: 104px;
+      height: 36px;
+      padding: 0 8px;
+      font: inherit;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .appearance-controls select:focus-visible,
+    .mode-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .mode-toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 64px;
+      height: 36px;
+      padding: 0 9px;
+      cursor: pointer;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+    }
+    .mode-toggle::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      border-radius: 50%;
+      transition: transform 0.15s;
+    }
+    .mode-toggle[aria-checked='true']::before {
+      transform: translateX(28px);
+    }
+    .mode-toggle .icon {
+      position: relative;
+      z-index: 1;
+    }
+    .mode-toggle[aria-checked='false'] .icon:first-child,
+    .mode-toggle[aria-checked='true'] .icon:last-child {
+      color: var(--surface);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .mode-toggle::before {
+        transition: none;
+      }
+    }
+    .page-footer {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px 32px;
+      text-align: right;
     }
     .tagline {
       margin: 2px 0 0;
@@ -327,7 +412,21 @@ export class BudgetPlannerApp extends LitElement {
         padding: 20px 16px;
       }
     }
+
+    @media (max-width: 600px) {
+      .app-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .header-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
   `;
+
+  @state()
+  private _themePreference: ThemePreference = loadThemePreference();
 
   @state()
   private _budgetData: BudgetData = {
@@ -447,6 +546,29 @@ export class BudgetPlannerApp extends LitElement {
     this._activeSection = id;
     this.renderRoot.querySelector(`#${id}`)?.scrollIntoView({ block: 'start' });
   };
+
+  private _setColorScheme(event: Event): void {
+    if (!(event.currentTarget instanceof HTMLSelectElement)) {
+      throw new Error('Color scheme control did not provide a select element');
+    }
+    const select = event.currentTarget;
+    const colorScheme = COLOR_SCHEMES.find(({ id }) => id === select.value);
+    if (!colorScheme) {
+      throw new Error(`Unsupported color scheme: ${select.value}`);
+    }
+    this._updateThemePreference({ ...this._themePreference, colorScheme: colorScheme.id });
+  }
+
+  private _toggleColorMode(): void {
+    const colorMode = this._themePreference.colorMode === 'dark' ? 'light' : 'dark';
+    this._updateThemePreference({ ...this._themePreference, colorMode });
+  }
+
+  private _updateThemePreference(preference: ThemePreference): void {
+    this._themePreference = preference;
+    applyThemePreference(preference);
+    saveThemePreference(preference);
+  }
 
   /** Async task for loading budget data on startup */
   private _loadDataTask = new Task(this, {
@@ -783,9 +905,28 @@ export class BudgetPlannerApp extends LitElement {
             <p class="tagline">Plan income, expenses and savings together</p>
           </div>
         </div>
-        <button type="button" id="dev-fill-data" class="dev-fill" @click=${() => this._fillSampleData()}>
-          Fill test data
-        </button>
+        <div class="header-actions">
+          <div class="appearance-controls" aria-label="Appearance settings">
+            <label for="color-scheme" class="theme-label">Theme</label>
+            <select id="color-scheme" @change=${this._setColorScheme}>
+              ${COLOR_SCHEMES.map(
+                ({ id, label }) =>
+                  html`<option value=${id} ?selected=${this._themePreference.colorScheme === id}>${label}</option>`
+              )}
+            </select>
+            <button
+              type="button"
+              id="color-mode"
+              class="mode-toggle"
+              role="switch"
+              aria-label="Dark mode"
+              aria-checked=${this._themePreference.colorMode === 'dark' ? 'true' : 'false'}
+              @click=${() => this._toggleColorMode()}
+            >
+              ${icon('sun', 16)}${icon('moon', 16)}
+            </button>
+          </div>
+        </div>
       </header>
 
       <div class="layout">
@@ -908,6 +1049,12 @@ export class BudgetPlannerApp extends LitElement {
           `)}
         </main>
       </div>
+
+      <footer class="page-footer">
+        <button type="button" id="dev-fill-data" class="dev-fill" @click=${() => this._fillSampleData()}>
+          Fill test data
+        </button>
+      </footer>
     `;
   }
 

@@ -45,11 +45,11 @@ export const baseStyles = css`
     font-variant-numeric: tabular-nums;
   }
   input::placeholder {
-    color: #9ca3af;
+    color: var(--muted);
   }
   input:hover,
   select:hover {
-    border-color: #cfd4dc;
+    border-color: var(--muted);
   }
   input:focus-visible,
   select:focus-visible {

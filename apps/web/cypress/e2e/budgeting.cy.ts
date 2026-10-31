@@ -137,6 +137,27 @@ describe('critical budgeting workflows', () => {
     component('budget-contributions').find('#contribution-method').should('have.value', 'fully-pooled');
   });
 
+  it('switches color schemes and light/dark mode and persists the preference', () => {
+    app().find('#color-scheme').select('forest');
+    app().find('#color-mode').click();
+    cy.document().its('documentElement')
+      .should('have.attr', 'data-color-scheme', 'forest')
+      .and('have.attr', 'data-color-mode', 'dark');
+    cy.window().its('localStorage')
+      .invoke('getItem', 'budget-planner-theme-preference')
+      .should('equal', JSON.stringify({ colorScheme: 'forest', colorMode: 'dark' }));
+
+    cy.reload();
+    cy.window().its('localStorage')
+      .invoke('getItem', 'budget-planner-theme-preference')
+      .should('equal', JSON.stringify({ colorScheme: 'forest', colorMode: 'dark' }));
+    cy.document().its('documentElement')
+      .should('have.attr', 'data-color-scheme', 'forest')
+      .and('have.attr', 'data-color-mode', 'dark');
+    app().find('#color-scheme').should('have.value', 'forest');
+    app().find('#color-mode').should('have.attr', 'aria-checked', 'true');
+  });
+
   it('fills random test data from the temporary header button', () => {
     app().find('#dev-fill-data').click();
     app().find('budget-summary').shadow().find('#summary-income-total')
