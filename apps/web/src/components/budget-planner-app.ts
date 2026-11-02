@@ -12,16 +12,22 @@ import type {
   SharedSavingsData
 } from '@budget-planner/core';
 import {
-  addPerson as coreAddPerson,
-  applySettlementAdjustments,
-  calculateContributions,
+  addPersonToBudget,
+  applySettlementsToBudget,
   calculateHouseholdTotals,
   canAddPerson as coreCanAddPerson,
-  createDefaultScenario,
-  createId,
-  removePerson as coreRemovePerson,
-  removeSettlementAdjustments,
-  renamePerson as coreRenamePerson
+  generateSampleBudget,
+  isSettlementApplied,
+  removePersonFromBudget,
+  removeSettlementsFromBudget,
+  renamePersonInBudget,
+  setContributionMethod,
+  setCustomContributionPercent,
+  updateAssets,
+  updateIncome,
+  updatePersonalExpenses,
+  updatePersonalSavings,
+  updateSharedExpenses
 } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { localStorageAdapter } from '../adapters/local-storage-adapter.ts';
@@ -33,9 +39,8 @@ import {
   type ThemePreference
 } from '../adapters/theme-preference.ts';
 import { icon, type IconName } from '../ui/icons.ts';
-import { generateSampleBudget } from '../dev/sample-data.ts';
 import { LocalizeController, money, t } from '../i18n/index.ts';
-import type { MessageKey } from '@budget-planner/i18n';
+import type { MessageKey } from '@budget-planner/preferences';
 
 // Import child components
 import './locale-settings.ts';
@@ -618,266 +623,103 @@ export class BudgetPlannerApp extends LitElement {
     this.requestUpdate();
   }
 
+  /** Applies a state change from the shared core, persists it and refreshes the context. */
+  private _commit(next: BudgetData | undefined, save: (data: BudgetData) => void): void {
+    if (!next) {
+      return;
+    }
+    this._budgetData = next;
+    save(next);
+    this._updateContextValue();
+  }
+
+  private _saveSettlementTargets = (data: BudgetData): void => {
+    localStorageAdapter.saveIncome(data.incomeByPerson);
+    localStorageAdapter.savePersonalExpenses(data.personalExpensesByPerson);
+  };
+
   // TEMPORARY: replaces all data with random sample data for manual testing.
   private _fillSampleData(): void {
-    this._budgetData = generateSampleBudget();
-    localStorageAdapter.saveAll(this._budgetData);
-    this._updateContextValue();
+    this._commit(generateSampleBudget(), (data) => localStorageAdapter.saveAll(data));
   }
 
   private _addPerson(): void {
-    if (!coreCanAddPerson(this._budgetData.people)) {
-      return;
-    }
-    const nextIndex = this._budgetData.people.length + 1;
-    const newPerson = { id: `person-${nextIndex}`, name: t('person.defaultName', { n: nextIndex }) };
-    const result = coreAddPerson(this._budgetData.people, newPerson);
-    if (result.issues.length === 0) {
-      const newIncomeScenario = createDefaultScenario(createId('scenario'));
-      const newExpenseScenario = createDefaultScenario(createId('scenario'));
-
-      this._budgetData = {
-        ...this._budgetData,
-        people: result.people,
-        contributionSettings: {
-          ...this._budgetData.contributionSettings,
-          customPercentByPerson: Object.fromEntries(result.people.map(({ id }) => [id, 100 / result.people.length]))
-        },
-        incomeByPerson: {
-          ...this._budgetData.incomeByPerson,
-          [newPerson.id]: {
-            activeScenarioId: newIncomeScenario.id,
-            scenarios: [newIncomeScenario]
-          }
-        },
-        personalExpensesByPerson: {
-          ...this._budgetData.personalExpensesByPerson,
-          [newPerson.id]: {
-            activeScenarioId: newExpenseScenario.id,
-            scenarios: [newExpenseScenario]
-          }
-        },
-        assetsByPerson: {
-          ...this._budgetData.assetsByPerson,
-          [newPerson.id]: []
-        },
-        personalSavingsByPerson: {
-          ...this._budgetData.personalSavingsByPerson,
-          [newPerson.id]: { sharedContributionPercent: 0, items: [] }
-        }
-      };
-
-      localStorageAdapter.saveAll(this._budgetData);
-      this._updateContextValue();
-    }
+    const name = t('person.defaultName', { n: this._budgetData.people.length + 1 });
+    this._commit(addPersonToBudget(this._budgetData, name), (data) => localStorageAdapter.saveAll(data));
   }
 
   private _removePerson(id: string): void {
-    const result = coreRemovePerson(this._budgetData.people, id);
-    if (result.issues.length === 0) {
-      const { [id]: _removedIncome, ...restIncome } = this._budgetData.incomeByPerson;
-      const { [id]: _removedExpense, ...restExpense } = this._budgetData.personalExpensesByPerson;
-      const { [id]: _removedAssets, ...restAssets } = this._budgetData.assetsByPerson;
-      const { [id]: _removedSavings, ...restSavings } = this._budgetData.personalSavingsByPerson;
-
-      // Reassign any shared expense entries for this person to first remaining person
-      const remainingFirstId = result.people[0]?.id;
-      const updatedSharedScenarios = this._budgetData.sharedExpenses.scenarios.map((sc) => ({
-        ...sc,
-        entries: sc.entries.map((entry) =>
-          entry.personId === id ? { ...entry, personId: remainingFirstId } : entry
-        )
-      }));
-
-      this._budgetData = {
-        ...this._budgetData,
-        people: result.people,
-        incomeByPerson: restIncome,
-        personalExpensesByPerson: restExpense,
-        assetsByPerson: restAssets,
-        personalSavingsByPerson: restSavings,
-        contributionSettings: {
-          ...this._budgetData.contributionSettings,
-          customPercentByPerson: { [result.people[0].id]: 100 }
-        },
-        sharedExpenses: {
-          ...this._budgetData.sharedExpenses,
-          scenarios: updatedSharedScenarios
-        }
-      };
-
-      localStorageAdapter.saveAll(this._budgetData);
-      this._updateContextValue();
-    }
+    this._commit(removePersonFromBudget(this._budgetData, id), (data) => localStorageAdapter.saveAll(data));
   }
 
   private _renamePerson(id: string, name: string): void {
-    const result = coreRenamePerson(this._budgetData.people, id, name);
-    if (result.issues.length === 0) {
-      this._budgetData = {
-        ...this._budgetData,
-        people: result.people
-      };
-      localStorageAdapter.savePeople(this._budgetData.people);
-      this._updateContextValue();
-    }
+    this._commit(renamePersonInBudget(this._budgetData, id, name), (data) =>
+      localStorageAdapter.savePeople(data.people)
+    );
   }
 
   private _updateIncome(personId: string, state: ScenarioState): void {
-    this._budgetData = {
-      ...this._budgetData,
-      incomeByPerson: {
-        ...this._budgetData.incomeByPerson,
-        [personId]: state
-      }
-    };
-    localStorageAdapter.saveIncome(this._budgetData.incomeByPerson);
-    this._updateContextValue();
+    this._commit(updateIncome(this._budgetData, personId, state), (data) =>
+      localStorageAdapter.saveIncome(data.incomeByPerson)
+    );
   }
 
   private _updatePersonalExpense(personId: string, state: ScenarioState): void {
-    this._budgetData = {
-      ...this._budgetData,
-      personalExpensesByPerson: {
-        ...this._budgetData.personalExpensesByPerson,
-        [personId]: state
-      }
-    };
-    localStorageAdapter.savePersonalExpenses(this._budgetData.personalExpensesByPerson);
-    this._updateContextValue();
+    this._commit(updatePersonalExpenses(this._budgetData, personId, state), (data) =>
+      localStorageAdapter.savePersonalExpenses(data.personalExpensesByPerson)
+    );
   }
 
   private _updateSharedExpenses(state: ScenarioState<SharedExpenseEntry>): void {
-    this._budgetData = {
-      ...this._budgetData,
-      sharedExpenses: state
-    };
-    localStorageAdapter.saveSharedExpenses(this._budgetData.sharedExpenses);
-    this._updateContextValue();
+    this._commit(updateSharedExpenses(this._budgetData, state), (data) =>
+      localStorageAdapter.saveSharedExpenses(data.sharedExpenses)
+    );
   }
 
   private _updateAssets(personId: string, entries: Entry[]): void {
-    this._budgetData = {
-      ...this._budgetData,
-      assetsByPerson: {
-        ...this._budgetData.assetsByPerson,
-        [personId]: entries
-      }
-    };
-    localStorageAdapter.saveAssets(this._budgetData.assetsByPerson);
-    this._updateContextValue();
+    this._commit(updateAssets(this._budgetData, personId, entries), (data) =>
+      localStorageAdapter.saveAssets(data.assetsByPerson)
+    );
   }
 
   private _updatePersonalSavings(personId: string, savings: PersonSavingsData): void {
-    this._budgetData = {
-      ...this._budgetData,
-      personalSavingsByPerson: {
-        ...this._budgetData.personalSavingsByPerson,
-        [personId]: savings
-      }
-    };
-    localStorageAdapter.savePersonalSavings(this._budgetData.personalSavingsByPerson);
-    this._updateContextValue();
+    this._commit(updatePersonalSavings(this._budgetData, personId, savings), (data) =>
+      localStorageAdapter.savePersonalSavings(data.personalSavingsByPerson)
+    );
   }
 
   private _updateSharedSavings(savings: SharedSavingsData): void {
-    this._budgetData = {
-      ...this._budgetData,
-      sharedSavings: savings
-    };
-    localStorageAdapter.saveSharedSavings(this._budgetData.sharedSavings);
-    this._updateContextValue();
+    this._commit({ ...this._budgetData, sharedSavings: savings }, (data) =>
+      localStorageAdapter.saveSharedSavings(data.sharedSavings)
+    );
   }
 
+  private _saveContributionChange = (data: BudgetData): void => {
+    this._saveSettlementTargets(data);
+    localStorageAdapter.saveContributionSettings(data.contributionSettings);
+  };
+
   private _setContributionMethod(method: ContributionMethod): void {
-    if (this._isSettlementApplied()) {
-      this._removeSettlements();
-    }
-    this._budgetData = {
-      ...this._budgetData,
-      contributionSettings: { ...this._budgetData.contributionSettings, method }
-    };
-    localStorageAdapter.saveContributionSettings(this._budgetData.contributionSettings);
-    this._updateContextValue();
+    this._commit(setContributionMethod(this._budgetData, method), this._saveContributionChange);
   }
 
   private _setCustomContributionPercent(personId: string, percent: number): void {
-    if (!Number.isFinite(percent) || !this._budgetData.people.some(({ id }) => id === personId)) {
-      return;
-    }
-    const boundedPercent = Math.round(Math.max(0, Math.min(100, percent)) * 100) / 100;
-    const customPercentByPerson = this._budgetData.people.length === 1
-      ? { [personId]: 100 }
-      : Object.fromEntries(this._budgetData.people.map(({ id }) => [
-          id,
-          id === personId ? boundedPercent : Math.round((100 - boundedPercent) * 100) / 100
-        ]));
-    if (this._isSettlementApplied()) {
-      this._removeSettlements();
-    }
-    this._budgetData = {
-      ...this._budgetData,
-      contributionSettings: { ...this._budgetData.contributionSettings, customPercentByPerson }
-    };
-    localStorageAdapter.saveContributionSettings(this._budgetData.contributionSettings);
-    this._updateContextValue();
+    this._commit(
+      setCustomContributionPercent(this._budgetData, personId, percent),
+      this._saveContributionChange
+    );
   }
 
   private _isSettlementApplied(): boolean {
-    return this._budgetData.people.some((person) => {
-      const incState = this._budgetData.incomeByPerson[person.id];
-      const activeInc = incState?.scenarios.find((s) => s.id === incState.activeScenarioId);
-      const expState = this._budgetData.personalExpensesByPerson[person.id];
-      const activeExp = expState?.scenarios.find((s) => s.id === expState.activeScenarioId);
-      return (
-        activeInc?.entries.some((e) => e.isSettlement) ||
-        activeExp?.entries.some((e) => e.isSettlement)
-      );
-    });
+    return isSettlementApplied(this._budgetData);
   }
 
   private _applySettlements(): void {
-    const { rows } = calculateContributions(
-      this._budgetData.people,
-      this._budgetData.incomeByPerson,
-      this._budgetData.personalExpensesByPerson,
-      this._budgetData.sharedExpenses,
-      this._budgetData.contributionSettings.method,
-      this._budgetData.contributionSettings.customPercentByPerson
-    );
-
-    const updated = applySettlementAdjustments(
-      this._budgetData.incomeByPerson,
-      this._budgetData.personalExpensesByPerson,
-      rows
-    );
-
-    this._budgetData = {
-      ...this._budgetData,
-      incomeByPerson: updated.incomeByPerson,
-      personalExpensesByPerson: updated.personalExpensesByPerson
-    };
-
-    localStorageAdapter.saveIncome(this._budgetData.incomeByPerson);
-    localStorageAdapter.savePersonalExpenses(this._budgetData.personalExpensesByPerson);
-    this._updateContextValue();
+    this._commit(applySettlementsToBudget(this._budgetData), this._saveSettlementTargets);
   }
 
   private _removeSettlements(): void {
-    const updated = removeSettlementAdjustments(
-      this._budgetData.incomeByPerson,
-      this._budgetData.personalExpensesByPerson
-    );
-
-    this._budgetData = {
-      ...this._budgetData,
-      incomeByPerson: updated.incomeByPerson,
-      personalExpensesByPerson: updated.personalExpensesByPerson
-    };
-
-    localStorageAdapter.saveIncome(this._budgetData.incomeByPerson);
-    localStorageAdapter.savePersonalExpenses(this._budgetData.personalExpensesByPerson);
-    this._updateContextValue();
+    this._commit(removeSettlementsFromBudget(this._budgetData), this._saveSettlementTargets);
   }
 
   override render() {

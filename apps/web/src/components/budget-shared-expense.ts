@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { consume } from '@lit/context';
 import type { Scenario, ScenarioState, SharedExpenseEntry } from '@budget-planner/core';
-import { createId, entriesTotal } from '@budget-planner/core';
+import { createDefaultSharedExpenseScenario, entriesTotal, parseAmount } from '@budget-planner/core';
 import { scenarioStyles } from './scenario-budget.ts';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { icon } from '../ui/icons.ts';
@@ -82,7 +82,7 @@ export class BudgetSharedExpense extends LitElement {
     if (this.budget) {
       return this.budget.data.sharedExpenses;
     }
-    const fallback = createDefaultSharedScenario();
+    const fallback = createDefaultSharedExpenseScenario();
     return { activeScenarioId: fallback.id, scenarios: [fallback] };
   }
 
@@ -90,7 +90,7 @@ export class BudgetSharedExpense extends LitElement {
     const data = this._getSharedState();
     const found = data.scenarios.find((scenario) => scenario.id === data.activeScenarioId);
     if (!found) {
-      const fallback = createDefaultSharedScenario();
+      const fallback = createDefaultSharedExpenseScenario();
       return fallback;
     }
     return found;
@@ -118,7 +118,7 @@ export class BudgetSharedExpense extends LitElement {
 
   addScenario(): void {
     const current = this._getSharedState();
-    const newScenario = createDefaultSharedScenario();
+    const newScenario = createDefaultSharedExpenseScenario();
     this._commitState({
       activeScenarioId: newScenario.id,
       scenarios: [...current.scenarios, newScenario]
@@ -208,7 +208,7 @@ export class BudgetSharedExpense extends LitElement {
     const current = this._getSharedState();
     const active = this.getActiveScenario();
 
-    const amount = Number(amountStr) || 0;
+    const amount = parseAmount(amountStr);
     const entries = active.entries.map((entry, idx) => (idx === entryIndex ? { ...entry, amount } : entry));
     this._commitState({
       ...current,
@@ -379,8 +379,4 @@ declare global {
   interface HTMLElementTagNameMap {
     'budget-shared-expense': BudgetSharedExpense;
   }
-}
-
-function createDefaultSharedScenario(): Scenario<SharedExpenseEntry> {
-  return { id: createId('scenario'), name: 'Default', entries: [] };
 }

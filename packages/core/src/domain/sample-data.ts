@@ -1,6 +1,6 @@
 // TEMPORARY: random sample data for manual testing. Remove with the header button when the app is complete.
-import type { BudgetData, Entry, ScenarioState, SharedExpenseEntry, SavingsItem } from '@budget-planner/core';
-import { createId } from '@budget-planner/core';
+import type { BudgetData, Entry, ScenarioState, SharedExpenseEntry, SavingsItem } from './models.js';
+import { createId } from './utils.js';
 
 const NAMES = ['Alex', 'Sam', 'Jamie', 'Taylor', 'Morgan', 'Riley', 'Jordan', 'Casey'];
 const METHODS = ['equal', 'proportional', 'equal-leftover', 'fully-pooled', 'custom'] as const;

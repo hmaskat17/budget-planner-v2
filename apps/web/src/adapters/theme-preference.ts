@@ -1,32 +1,22 @@
 import {
-  parseThemePreference,
-  DEFAULT_THEME_PREFERENCE,
+  loadStoredThemePreference,
+  saveStoredThemePreference,
   type ThemePreference
-} from '@budget-planner/i18n';
+} from '@budget-planner/preferences';
 
 export {
   COLOR_SCHEMES,
   type ColorMode,
   type ColorScheme,
   type ThemePreference
-} from '@budget-planner/i18n';
-
-const THEME_STORAGE_KEY = 'budget-planner-theme-preference';
+} from '@budget-planner/preferences';
 
 export function loadThemePreference(): ThemePreference {
-  const raw = localStorage.getItem(THEME_STORAGE_KEY);
-  if (!raw) {
-    return DEFAULT_THEME_PREFERENCE;
-  }
-  try {
-    return parseThemePreference(JSON.parse(raw));
-  } catch {
-    return DEFAULT_THEME_PREFERENCE;
-  }
+  return loadStoredThemePreference(localStorage);
 }
 
 export function saveThemePreference(preference: ThemePreference): void {
-  localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(preference));
+  saveStoredThemePreference(localStorage, preference);
 }
 
 export function applyThemePreference(preference: ThemePreference): void {

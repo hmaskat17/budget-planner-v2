@@ -5,6 +5,7 @@ import type { Scenario, ScenarioState } from '@budget-planner/core';
 import {
   createDefaultScenario as coreCreateDefaultScenario,
   createId,
+  parseAmount,
   scenarioTotal,
   setSettlementEntry,
   removeSettlementEntry,
@@ -264,7 +265,7 @@ export abstract class ScenarioBudgetElement extends LitElement {
     const active = this.getActiveScenario();
     if (!active) return;
 
-    const amount = Number(amountStr) || 0;
+    const amount = parseAmount(amountStr);
     const entries = active.entries.map((entry, idx) => (idx === entryIndex ? { ...entry, amount } : entry));
     this._commitState({
       ...state,

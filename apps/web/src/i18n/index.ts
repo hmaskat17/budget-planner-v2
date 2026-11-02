@@ -3,7 +3,7 @@ import {
   createTranslator,
   type LocalePreference,
   type Translator
-} from '@budget-planner/i18n';
+} from '@budget-planner/preferences';
 import {
   applyLocalePreference,
   loadLocalePreference,

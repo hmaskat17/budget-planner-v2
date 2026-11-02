@@ -6,3 +6,4 @@ export * from './theme.ts';
 export { en, type MessageKey, type Messages } from './messages/en.ts';
 export { fi } from './messages/fi.ts';
 export { sv } from './messages/sv.ts';
+export * from './preference-storage.ts';

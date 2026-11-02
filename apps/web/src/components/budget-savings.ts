@@ -6,7 +6,11 @@ import {
   calculateRemainingBalances,
   calculateSavingsAllocation,
   calculateSavingsPool,
-  createId
+  addGoal,
+  removeGoal,
+  setSharedContributionPercent,
+  updateGoalName,
+  updateGoalPercent
 } from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { baseStyles } from '../ui/shared-styles.ts';
@@ -172,78 +176,39 @@ export class BudgetSavings extends LitElement {
   }
 
   addPersonalGoal(personId: string): void {
-    const current = this._getPersonSavingsData(personId);
-    this._updatePersonSavings(personId, {
-      ...current,
-      items: [...current.items, { id: createId('savings'), name: '', percent: 0 }]
-    });
+    this._updatePersonSavings(personId, addGoal(this._getPersonSavingsData(personId)));
   }
 
   removePersonalGoal(personId: string, index: number): void {
-    const current = this._getPersonSavingsData(personId);
-    this._updatePersonSavings(personId, {
-      ...current,
-      items: current.items.filter((_, idx) => idx !== index)
-    });
+    this._updatePersonSavings(personId, removeGoal(this._getPersonSavingsData(personId), index));
   }
 
   updatePersonalGoalName(personId: string, index: number, name: string): void {
-    const current = this._getPersonSavingsData(personId);
-    this._updatePersonSavings(personId, {
-      ...current,
-      items: current.items.map((item, idx) => (idx === index ? { ...item, name } : item))
-    });
+    this._updatePersonSavings(personId, updateGoalName(this._getPersonSavingsData(personId), index, name));
   }
 
   updatePersonalGoalPercent(personId: string, index: number, percentStr: string): void {
-    const percent = Number(percentStr) || 0;
-    const current = this._getPersonSavingsData(personId);
-    this._updatePersonSavings(personId, {
-      ...current,
-      items: current.items.map((item, idx) => (idx === index ? { ...item, percent } : item))
-    });
+    this._updatePersonSavings(personId, updateGoalPercent(this._getPersonSavingsData(personId), index, percentStr));
   }
 
   updateSharedContributionPercent(personId: string, percentStr: string): void {
-    const percent = Number(percentStr) || 0;
-    const current = this._getPersonSavingsData(personId);
-    this._updatePersonSavings(personId, {
-      ...current,
-      sharedContributionPercent: percent
-    });
+    this._updatePersonSavings(personId, setSharedContributionPercent(this._getPersonSavingsData(personId), percentStr));
   }
 
   addSharedGoal(): void {
-    const current = this._getSharedSavingsData();
-    this._updateSharedSavings({
-      ...current,
-      items: [...current.items, { id: createId('savings'), name: '', percent: 0 }]
-    });
+    this._updateSharedSavings(addGoal(this._getSharedSavingsData()));
   }
 
   removeSharedGoal(index: number): void {
-    const current = this._getSharedSavingsData();
-    this._updateSharedSavings({
-      ...current,
-      items: current.items.filter((_, idx) => idx !== index)
-    });
+    this._updateSharedSavings(removeGoal(this._getSharedSavingsData(), index));
   }
 
   updateSharedGoalName(index: number, name: string): void {
-    const current = this._getSharedSavingsData();
-    this._updateSharedSavings({
-      ...current,
-      items: current.items.map((item, idx) => (idx === index ? { ...item, name } : item))
-    });
+    this._updateSharedSavings(updateGoalName(this._getSharedSavingsData(), index, name));
   }
 
   updateSharedGoalPercent(index: number, percentStr: string): void {
-    const percent = Number(percentStr) || 0;
-    const current = this._getSharedSavingsData();
-    this._updateSharedSavings({
-      ...current,
-      items: current.items.map((item, idx) => (idx === index ? { ...item, percent } : item))
-    });
+    this._updateSharedSavings(updateGoalPercent(this._getSharedSavingsData(), index, percentStr));
   }
 
   override render() {

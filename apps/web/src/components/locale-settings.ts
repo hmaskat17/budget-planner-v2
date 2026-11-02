@@ -17,7 +17,7 @@ import {
   isNumberLocale,
   searchCurrencies,
   type CurrencyCode
-} from '@budget-planner/i18n';
+} from '@budget-planner/preferences';
 
 function numberLocaleLabel(locale: string, language: string): string {
   try {

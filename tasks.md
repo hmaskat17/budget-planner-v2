@@ -6,6 +6,7 @@ Mark tasks `[x]` when done. Unsure ideas go in [Future / undecided](#future--und
 ## Phase 0 - Validate the technical direction
 - [x] Use NativeScript Core with TypeScript/XML for the initial Android app; spike to verify workspace compatibility and Android workflow (see [findings](./docs/phase-0-findings.md)).
 - [x] Target Android only for the initial release; defer iOS.
+- [x] Architecture: Move remaining shareable web logic (budget state reducers, storage, savings goals, amount parsing, sample data, preference storage) into core/preferences so mobile can reuse it.
 - [x] Architecture: Confirm package boundaries and how web and NativeScript apps consume the shared TypeScript domain package.
 
 ## Phase 1 - Refactoring project structure
@@ -24,7 +25,7 @@ Mark tasks `[x]` when done. Unsure ideas go in [Future / undecided](#future--und
 - [x] Add a summary view for the key household totals, reusing domain calculations.
 - [x] Add selectable color schemes and light/dark modes. Each color scheme will have it's own light and dark modes. Create 3-5 schemes.
 - [x] Add English, Finnish and Swedish localization, with browser-based defaults and user-selectable currency (display only, no conversion) and number format.
-- [x] Move platform-independent i18n logic and theme definitions (scheme ids, preference types and validation, theme name translations) from `apps/web` into the new `packages/i18n` so mobile can reuse them. Web keeps the Lit controller, settings UI and storage/DOM adapters. Android follow-up: verify `Intl` (NumberFormat, DisplayNames) support in the NativeScript JS engine and add a fallback in `format.ts`/`getCurrencyName` if needed.
+- [x] Move platform-independent i18n logic and theme definitions (scheme ids, preference types and validation, theme name translations) from `apps/web` into the new `packages/preferences` so mobile can reuse them. Web keeps the Lit controller, settings UI and storage/DOM adapters. Android follow-up: verify `Intl` (NumberFormat, DisplayNames) support in the NativeScript JS engine and add a fallback in `format.ts`/`getCurrencyName` if needed.
 - [ ] Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
 - [ ] Add translations for core validation issue messages once they are surfaced in the UI (e.g. import/export).
 

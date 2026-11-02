@@ -2,7 +2,7 @@ import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { consume } from '@lit/context';
 import type { Entry } from '@budget-planner/core';
-import { entriesTotal } from '@budget-planner/core';
+import { entriesTotal, parseAmount } from '@budget-planner/core';
 import { scenarioStyles } from './scenario-budget.ts';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { icon } from '../ui/icons.ts';
@@ -54,7 +54,7 @@ export class BudgetUnallocatedAssets extends LitElement {
   }
 
   updateEntryAmount(index: number, amountStr: string): void {
-    const amount = Number(amountStr) || 0;
+    const amount = parseAmount(amountStr);
     const list = this.entries().map((item, idx) => (idx === index ? { ...item, amount } : item));
     this._commit(list);
   }
