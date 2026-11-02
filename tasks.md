@@ -24,9 +24,9 @@ Mark tasks `[x]` when done. Unsure ideas go in [Future / undecided](#future--und
 - [x] Add a summary view for the key household totals, reusing domain calculations.
 - [x] Add selectable color schemes and light/dark modes. Each color scheme will have it's own light and dark modes. Create 3-5 schemes.
 - [x] Add English, Finnish and Swedish localization, with browser-based defaults and user-selectable currency (display only, no conversion) and number format.
-- [ ] Move platform-independent i18n logic from `apps/web/src/i18n` into `packages/core` so mobile can reuse it: message dictionaries (en/fi/sv), `t()` interpolation, locale/currency lists and search, detection (taking a list of language tags as input), money/number/percent formatting (verify `Intl` support on Android), and preference validation. Keep the Lit controller, settings UI and storage/`<html lang>` handling in web adapters. Behavior-preserving; move the i18n Vitest tests along.
-- [ ] Add translations for core validation issue messages once they are surfaced in the UI (e.g. import/export).
+- [x] Move platform-independent i18n logic and theme definitions (scheme ids, preference types and validation, theme name translations) from `apps/web` into the new `packages/i18n` so mobile can reuse them. Web keeps the Lit controller, settings UI and storage/DOM adapters. Android follow-up: verify `Intl` (NumberFormat, DisplayNames) support in the NativeScript JS engine and add a fallback in `format.ts`/`getCurrencyName` if needed.
 - [ ] Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
+- [ ] Add translations for core validation issue messages once they are surfaced in the UI (e.g. import/export).
 
 ## Phase 4 - Web product review
 - [ ] Product: Review the current budget experience and logic for web. Prioritize findings and agree on which product changes are in scope before implementation.

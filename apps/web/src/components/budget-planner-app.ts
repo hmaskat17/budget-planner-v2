@@ -35,7 +35,7 @@ import {
 import { icon, type IconName } from '../ui/icons.ts';
 import { generateSampleBudget } from '../dev/sample-data.ts';
 import { LocalizeController, money, t } from '../i18n/index.ts';
-import type { MessageKey } from '../i18n/en.ts';
+import type { MessageKey } from '@budget-planner/i18n';
 
 // Import child components
 import './locale-settings.ts';

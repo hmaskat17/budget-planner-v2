@@ -11,13 +11,13 @@ import {
 import {
   LANGUAGES,
   NUMBER_LOCALES,
+  formatMoney,
   getCurrencyName,
   isLanguage,
   isNumberLocale,
   searchCurrencies,
   type CurrencyCode
-} from '../i18n/locales.ts';
-import { formatMoney } from '../i18n/format.ts';
+} from '@budget-planner/i18n';
 
 function numberLocaleLabel(locale: string, language: string): string {
   try {

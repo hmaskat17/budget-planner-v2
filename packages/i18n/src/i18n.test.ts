@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { en } from './en.ts';
-import { fi } from './fi.ts';
-import { sv } from './sv.ts';
+import { en } from './messages/en.ts';
+import { fi } from './messages/fi.ts';
+import { sv } from './messages/sv.ts';
 import { formatMoney, formatPercent } from './format.ts';
+import { createTranslator } from './translator.ts';
+import { detectLocalePreference, parseLocalePreference } from './preference.ts';
+import { DEFAULT_THEME_PREFERENCE, parseThemePreference } from './theme.ts';
 import {
   CURRENCIES,
   detectCurrency,
@@ -90,5 +93,58 @@ describe('formatting', () => {
   it('formats percentages from plain percent values', () => {
     expect(normalize(formatPercent(66.666, 'fi-FI'))).toBe('66,67 %');
     expect(formatPercent(100, 'en-US')).toBe('100.00%');
+  });
+});
+
+describe('translator', () => {
+  const pref = { language: 'fi', currency: 'EUR', numberLocale: 'en-US' } as const;
+
+  it('translates with interpolation and formats with the preference', () => {
+    const tr = createTranslator(pref);
+    expect(tr.t('person.defaultName', { n: 2 })).toBe(fi['person.defaultName'].replace('{n}', '2'));
+    expect(tr.money(1234.5)).toBe('€1,234.50');
+    expect(tr.percent(100)).toBe('100.00%');
+  });
+
+  it('keeps unknown placeholders and maps stored English names', () => {
+    const tr = createTranslator({ ...pref, language: 'sv' });
+    expect(tr.t('person.defaultName')).toContain('{n}');
+    expect(tr.scenarioName('Default')).toBe(sv['scenario.default']);
+    expect(tr.scenarioName('Custom')).toBe('Custom');
+    expect(tr.settlementName('Shared expense settlement')).toBe(sv['settlement.entryName']);
+  });
+});
+
+describe('preference parsing', () => {
+  const defaults = detectLocalePreference(['fi-FI']);
+
+  it('validates each field separately and falls back to defaults', () => {
+    expect(parseLocalePreference({ language: 'sv', currency: 'XXX', numberLocale: 'en-US' }, defaults)).toEqual({
+      language: 'sv',
+      currency: defaults.currency,
+      numberLocale: 'en-US'
+    });
+    expect(parseLocalePreference(null, defaults)).toEqual(defaults);
+    expect(parseLocalePreference('x', defaults)).toEqual(defaults);
+  });
+});
+
+describe('theme preference parsing', () => {
+  it('accepts valid preferences and defaults otherwise', () => {
+    expect(parseThemePreference({ colorScheme: 'ocean', colorMode: 'dark' })).toEqual({
+      colorScheme: 'ocean',
+      colorMode: 'dark'
+    });
+    expect(parseThemePreference({ colorScheme: 'nope', colorMode: 'dark' })).toEqual(DEFAULT_THEME_PREFERENCE);
+    expect(parseThemePreference(undefined)).toEqual(DEFAULT_THEME_PREFERENCE);
+  });
+
+  it('has a translation for every color scheme', async () => {
+    const { COLOR_SCHEMES } = await import('./theme.ts');
+    for (const { id } of COLOR_SCHEMES) {
+      for (const messages of [en, fi, sv]) {
+        expect(messages[`theme.${id}` as keyof typeof en], id).toBeTruthy();
+      }
+    }
   });
 });
