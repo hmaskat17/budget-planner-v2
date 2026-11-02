@@ -4,8 +4,8 @@ Persistent task tracking, organized by phase. Phase goals, architecture and stru
 Mark tasks `[x]` when done. Unsure ideas go in [Future / undecided](#future--undecided).
 
 ## Phase 0 - Validate the technical direction
-- [x] Mobile: Use NativeScript Core with TypeScript/XML for the initial Android app; spike to verify workspace compatibility and Android workflow (see [findings](./docs/phase-0-findings.md)).
-- [x] Mobile: Target Android only for the initial release; defer iOS.
+- [x] Use NativeScript Core with TypeScript/XML for the initial Android app; spike to verify workspace compatibility and Android workflow (see [findings](./docs/phase-0-findings.md)).
+- [x] Target Android only for the initial release; defer iOS.
 - [x] Architecture: Confirm package boundaries and how web and NativeScript apps consume the shared TypeScript domain package.
 
 ## Phase 1 - Refactoring project structure
@@ -18,22 +18,23 @@ Mark tasks `[x]` when done. Unsure ideas go in [Future / undecided](#future--und
 ## Phase 2 - Product design decisions
 - [x] Web: Explore 3-4 low-fidelity layout directions, choose one against usability goals, then implement the redesign.
 
-## Phase 3 - Additional web functionality
+## Phase 3 - Building the web app
 - [x] Web: Add Cypress end-to-end tests for the critical budgeting workflows.
-- [x] Web: Add other contribution types (see specs.md > Contributions methods); default is proportional.
-- [x] Web: Add a summary view for the key household totals, reusing domain calculations.
-- [x] Web: Add selectable color schemes and light/dark modes. Each color scheme will have it's own light and dark modes. Create 3-5 schemes.
-- [x] Web: Add English, Finnish and Swedish localization, with browser-based defaults and user-selectable currency (display only, no conversion) and number format.
-- [ ] Web: Translate core validation issue messages once they are surfaced in the UI (e.g. import/export).
-- [ ] Web/Domain: Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
+- [x] Add other contribution types (see specs.md > Contributions methods); default is proportional.
+- [x] Add a summary view for the key household totals, reusing domain calculations.
+- [x] Add selectable color schemes and light/dark modes. Each color scheme will have it's own light and dark modes. Create 3-5 schemes.
+- [x] Add English, Finnish and Swedish localization, with browser-based defaults and user-selectable currency (display only, no conversion) and number format.
+- [ ] Move platform-independent i18n logic from `apps/web/src/i18n` into `packages/core` so mobile can reuse it: message dictionaries (en/fi/sv), `t()` interpolation, locale/currency lists and search, detection (taking a list of language tags as input), money/number/percent formatting (verify `Intl` support on Android), and preference validation. Keep the Lit controller, settings UI and storage/`<html lang>` handling in web adapters. Behavior-preserving; move the i18n Vitest tests along.
+- [ ] Add translations for core validation issue messages once they are surfaced in the UI (e.g. import/export).
+- [ ] Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
 
 ## Phase 4 - Web product review
 - [ ] Product: Review the current budget experience and logic for web. Prioritize findings and agree on which product changes are in scope before implementation.
 
-## Phase 5 - Build the mobile app
-- [ ] Mobile: Explore 3-4 low-fidelity layout directions, choose one against usability goals, then implement the redesign.
-- [ ] Mobile: Implement the Android app with NativeScript Core and reuse the shared domain package.
-- [ ] Mobile: Add Android persistence and test the core mobile workflows on Android.
+## Phase 5 - Building the mobile app
+- [ ] Explore 3-4 low-fidelity layout directions, choose one against usability goals, then implement the redesign.
+- [ ] Implement the Android app with NativeScript Core and reuse the shared domain package and replicate the web functionality.
+- [ ] Add Android persistence and test the core mobile workflows on Android.
 
 ## Phase 6 - Cross-platform review
 - [ ] Review the current state of the web and mobile apps: behavior and UX consistency, shared-core gaps, test coverage, performance and accessibility.
@@ -63,4 +64,9 @@ Ideas we are not sure about and will come back to.
   - [ ] Web: Add file import UI with error messages and an always-reachable "Reset to default"; consider a contrast warning.
   - [ ] Web: Add a Cypress test for importing and resetting a theme.
   - [ ] Mobile: Reuse the core parser; applying themes in the Android app is out of scope until the web version is done.
-- [ ] Future: Reassess iOS support after the Android app is established.
+- [ ] Mobile: Reassess iOS support after the Android app is established.
+- [ ] Web/Mobile: Add ability to invite another user as collaborator
+- [ ] Web/Mobile: Add support for exporting or sharing budget data / detailed summary as a report to PDF, CSV etc.
+- [ ] Web/Mobile: Add ability to copy a scenario to a new scenario
+- [ ] Web/Mobile: Add a savings overview of yearly accumulated savings for e.g. 1 year, 3 years, 5years and 10 years.
+- [ ] Web: Add a new UI style: Excel/90's software

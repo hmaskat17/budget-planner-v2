@@ -3,8 +3,6 @@
 ## Household
 
 - Has at minimum one person and a maximum of two
-- Uses Euros as currency
-- Numbers and percentages use two decimal percision
 
 ## Person
 
