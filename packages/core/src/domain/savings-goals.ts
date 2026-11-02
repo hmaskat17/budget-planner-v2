@@ -7,15 +7,24 @@ export function parseAmount(text: string): number {
   return Number(text) || 0;
 }
 
-export function addGoal<T extends { items: SavingsItem[] }>(data: T): T {
+export function addGoal<T extends { items: SavingsItem[] }>(
+  data: T
+): Omit<T, 'items'> & { items: SavingsItem[] } {
   return { ...data, items: [...data.items, { id: createId('savings'), name: '', percent: 0 }] };
 }
 
-export function removeGoal<T extends { items: SavingsItem[] }>(data: T, index: number): T {
+export function removeGoal<T extends { items: SavingsItem[] }>(
+  data: T,
+  index: number
+): Omit<T, 'items'> & { items: SavingsItem[] } {
   return { ...data, items: data.items.filter((_, idx) => idx !== index) };
 }
 
-export function updateGoalName<T extends { items: SavingsItem[] }>(data: T, index: number, name: string): T {
+export function updateGoalName<T extends { items: SavingsItem[] }>(
+  data: T,
+  index: number,
+  name: string
+): Omit<T, 'items'> & { items: SavingsItem[] } {
   return { ...data, items: data.items.map((item, idx) => (idx === index ? { ...item, name } : item)) };
 }
 
@@ -23,7 +32,7 @@ export function updateGoalPercent<T extends { items: SavingsItem[] }>(
   data: T,
   index: number,
   percentText: string
-): T {
+): Omit<T, 'items'> & { items: SavingsItem[] } {
   const percent = parseAmount(percentText);
   return { ...data, items: data.items.map((item, idx) => (idx === index ? { ...item, percent } : item)) };
 }
@@ -31,4 +40,3 @@ export function updateGoalPercent<T extends { items: SavingsItem[] }>(
 export function setSharedContributionPercent(data: PersonSavingsData, percentText: string): PersonSavingsData {
   return { ...data, sharedContributionPercent: parseAmount(percentText) };
 }
-
