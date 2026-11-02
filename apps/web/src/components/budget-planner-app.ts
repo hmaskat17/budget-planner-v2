@@ -44,6 +44,7 @@ import type { MessageKey } from '@budget-planner/preferences';
 
 // Import child components
 import './locale-settings.ts';
+import './backup-settings.ts';
 import './person-editor.ts';
 import './budget-income.ts';
 import './budget-personal-expense.ts';
@@ -643,6 +644,10 @@ export class BudgetPlannerApp extends LitElement {
     this._commit(generateSampleBudget(), (data) => localStorageAdapter.saveAll(data));
   }
 
+  private _importData(data: BudgetData): void {
+    this._commit(data, (next) => localStorageAdapter.saveAll(next));
+  }
+
   private _addPerson(): void {
     const name = t('person.defaultName', { n: this._budgetData.people.length + 1 });
     this._commit(addPersonToBudget(this._budgetData, name), (data) => localStorageAdapter.saveAll(data));
@@ -752,6 +757,10 @@ export class BudgetPlannerApp extends LitElement {
           </div>
         </div>
         <div class="header-actions">
+          <backup-settings
+            .data=${this._budgetData}
+            @backup-import=${(e: CustomEvent<BudgetData>) => this._importData(e.detail)}
+          ></backup-settings>
           <locale-settings></locale-settings>
           <div class="appearance-controls" role="group" aria-label=${t('settings.appearance')}>
             <label for="color-scheme" class="theme-label">${t('settings.theme')}</label>

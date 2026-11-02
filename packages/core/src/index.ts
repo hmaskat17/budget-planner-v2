@@ -10,3 +10,4 @@ export * from './domain/budget-state.js';
 export * from './domain/savings-goals.js';
 export * from './domain/sample-data.js';
 export * from './storage/budget-storage.js';
+export * from './storage/budget-backup.js';

@@ -26,8 +26,9 @@ Mark tasks `[x]` when done. Unsure ideas go in [Future / undecided](#future--und
 - [x] Add selectable color schemes and light/dark modes. Each color scheme will have it's own light and dark modes. Create 3-5 schemes.
 - [x] Add English, Finnish and Swedish localization, with browser-based defaults and user-selectable currency (display only, no conversion) and number format.
 - [x] Move platform-independent i18n logic and theme definitions (scheme ids, preference types and validation, theme name translations) from `apps/web` into the new `packages/preferences` so mobile can reuse them. Web keeps the Lit controller, settings UI and storage/DOM adapters. Android follow-up: verify `Intl` (NumberFormat, DisplayNames) support in the NativeScript JS engine and add a fallback in `format.ts`/`getCurrencyName` if needed.
-- [ ] Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
+- [x] Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
 - [ ] Add translations for core validation issue messages once they are surfaced in the UI (e.g. import/export).
+  - Import/export is done: the UI maps issue codes to `backup.issue.*` messages, with all other validation issues shown as a generic message plus the data path. Remaining: translate the fine-grained validation codes (`invalid-amount`, `invalid-percent`, ...) if more detail is wanted.
 
 ## Phase 4 - Web product review
 - [ ] Product: Review the current budget experience and logic for web. Prioritize findings and agree on which product changes are in scope before implementation.
