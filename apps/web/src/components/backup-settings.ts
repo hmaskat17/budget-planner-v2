@@ -64,21 +64,56 @@ export class BackupSettings extends LitElement {
         border-radius: var(--radius);
         box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
       }
-      .actions {
+      section {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 8px;
       }
-      .actions button {
+      section + section {
+        padding-top: 14px;
+        border-top: 1px solid var(--border-soft);
+      }
+      h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+      section button {
+        align-self: flex-start;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
+        height: 40px;
+        padding: 0 14px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--accent);
+        background: transparent;
+        border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+        border-radius: var(--radius-sm);
       }
-      .hint,
-      .status {
+      section button:hover {
+        background: color-mix(in srgb, var(--accent) 8%, transparent);
+      }
+      .success {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--positive);
+      }
+      .info {
         margin: 0;
         font-size: 0.8125rem;
         color: var(--muted);
+      }
+      .warning {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--negative);
       }
       .error {
         margin: 0;
@@ -101,10 +136,10 @@ export class BackupSettings extends LitElement {
   private _open = false;
 
   @state()
-  private _pending?: { name: string; data: BudgetData };
+  private _importErrors: string[] = [];
 
   @state()
-  private _errors: string[] = [];
+  private _exportErrors: string[] = [];
 
   @state()
   private _status = '';
@@ -114,13 +149,13 @@ export class BackupSettings extends LitElement {
 
   private readonly _onDocumentPointerDown = (event: PointerEvent): void => {
     if (this._open && !event.composedPath().includes(this)) {
-      this._open = false;
+      this._setOpen(false);
     }
   };
 
   private readonly _onDocumentKeyDown = (event: KeyboardEvent): void => {
     if (this._open && event.key === 'Escape') {
-      this._open = false;
+      this._setOpen(false);
     }
   };
 
@@ -136,9 +171,16 @@ export class BackupSettings extends LitElement {
     super.disconnectedCallback();
   }
 
+  private _setOpen(open: boolean): void {
+    this._open = open;
+    if (!open) {
+      this._reset();
+    }
+  }
+
   private _reset(): void {
-    this._pending = undefined;
-    this._errors = [];
+    this._importErrors = [];
+    this._exportErrors = [];
     this._status = '';
   }
 
@@ -147,9 +189,12 @@ export class BackupSettings extends LitElement {
       return;
     }
     this._reset();
-    const now = new Date();
-    downloadBackup(backupFileName(now), serializeBackup(createBackup(this.data, now)));
-    this._status = t('backup.exported');
+    try {
+      const now = new Date();
+      downloadBackup(backupFileName(now), serializeBackup(createBackup(this.data, now)));
+    } catch {
+      this._exportErrors = [t('backup.exportFailed')];
+    }
   }
 
   private async _onFileChosen(): Promise<void> {
@@ -160,26 +205,18 @@ export class BackupSettings extends LitElement {
     }
     this._reset();
     try {
-      const { name, text } = await readBackupFile(file);
-      const result = parseBackup(text);
+      const result = parseBackup((await readBackupFile(file)).text);
       if ('data' in result) {
-        this._pending = { name, data: result.data };
+        this._status = t('backup.imported');
+        this.dispatchEvent(
+          new CustomEvent<BudgetData>('backup-import', { detail: result.data, bubbles: true, composed: true })
+        );
       } else {
-        this._errors = [t('backup.importFailed'), ...result.issues.slice(0, 5).map(issueMessage)];
+        this._importErrors = [t('backup.importFailed'), ...result.issues.slice(0, 5).map(issueMessage)];
       }
     } catch {
-      this._errors = [t('backup.readError')];
+      this._importErrors = [t('backup.readError')];
     }
-  }
-
-  private _confirmImport(): void {
-    if (!this._pending) {
-      return;
-    }
-    const { data } = this._pending;
-    this._reset();
-    this._status = t('backup.imported');
-    this.dispatchEvent(new CustomEvent<BudgetData>('backup-import', { detail: data, bubbles: true, composed: true }));
   }
 
   override render() {
@@ -190,17 +227,16 @@ export class BackupSettings extends LitElement {
         class="toggle"
         aria-expanded=${this._open ? 'true' : 'false'}
         aria-controls="backup-panel"
-        @click=${() => (this._open = !this._open)}
+        @click=${() => this._setOpen(!this._open)}
       >
         ${icon('download', 16)}${t('backup.title')}
       </button>
       ${this._open
         ? html`
             <div id="backup-panel" class="panel" role="group" aria-label=${t('backup.title')}>
-              <div class="actions">
-                <button type="button" id="export-data" @click=${() => this._export()}>
-                  ${icon('download', 16)}${t('backup.export')}
-                </button>
+              <section aria-labelledby="restore-title">
+                <h2 id="restore-title">${t('backup.restoreTitle')}</h2>
+                <p class="warning">${t('backup.restoreWarning')}</p>
                 <button type="button" id="import-data" @click=${() => this._fileInput.click()}>
                   ${icon('upload', 16)}${t('backup.import')}
                 </button>
@@ -211,27 +247,27 @@ export class BackupSettings extends LitElement {
                   aria-label=${t('backup.import')}
                   @change=${() => this._onFileChosen()}
                 />
-              </div>
-              <p class="hint">${t('backup.hint')}</p>
-              ${this._pending
-                ? html`
-                    <p class="status" role="alert">${t('backup.confirm', { file: this._pending.name })}</p>
-                    <div class="actions">
-                      <button type="button" id="confirm-import" @click=${() => this._confirmImport()}>
-                        ${t('backup.confirmReplace')}
-                      </button>
-                      <button type="button" id="cancel-import" @click=${() => this._reset()}>
-                        ${t('backup.cancel')}
-                      </button>
-                    </div>
-                  `
-                : ''}
-              ${this._errors.length
-                ? html`<ul class="error" role="alert">
-                    ${this._errors.map((message) => html`<li>${message}</li>`)}
-                  </ul>`
-                : ''}
-              ${this._status ? html`<p class="status" role="status">${this._status}</p>` : ''}
+                ${this._importErrors.length
+                  ? html`<ul class="error import-errors" role="alert">
+                      ${this._importErrors.map((message) => html`<li>${message}</li>`)}
+                    </ul>`
+                  : ''}
+                ${this._status
+                  ? html`<p class="success" role="status">${icon('circleCheck', 28)}<span>${this._status}</span></p>`
+                  : ''}
+              </section>
+              <section aria-labelledby="create-title">
+                <h2 id="create-title">${t('backup.createTitle')}</h2>
+                <p class="info">${t('backup.createInfo')}</p>
+                <button type="button" id="export-data" @click=${() => this._export()}>
+                  ${icon('download', 16)}${t('backup.export')}
+                </button>
+                ${this._exportErrors.length
+                  ? html`<ul class="error export-errors" role="alert">
+                      ${this._exportErrors.map((message) => html`<li>${message}</li>`)}
+                    </ul>`
+                  : ''}
+              </section>
             </div>
           `
         : ''}

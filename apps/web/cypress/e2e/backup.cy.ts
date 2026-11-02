@@ -34,7 +34,6 @@ describe('export and import', () => {
 
   it('exports the budget data as a versioned file', () => {
     backup().find('#export-data').click();
-    backup().find('[role="status"]').should('contain.text', 'exported');
     cy.readFile('cypress/downloads/budget-planner-backup-' + new Date().toISOString().slice(0, 10) + '.json')
       .then((text) => {
         const file = typeof text === 'string' ? JSON.parse(text) : text;
@@ -44,12 +43,15 @@ describe('export and import', () => {
       });
   });
 
-  it('replaces data after confirming an import, and keeps it after reload', () => {
+  it('imports immediately without confirmation and keeps data after reload', () => {
     backup().find('#import-file').selectFile(
       { contents: Cypress.Buffer.from(JSON.stringify(validBackup)), fileName: 'backup.json' },
       { force: true }
     );
-    backup().find('#confirm-import').click();
+    backup().find('.success').should('contain.text', 'Backup restored');
+    backup().find('#backup-toggle').click();
+    backup().find('#backup-toggle').click();
+    backup().find('.success').should('not.exist');
     app().find('person-editor').eq(0).shadow().find('input[aria-label="Person name"]')
       .should('have.value', 'Imported');
     cy.reload();
@@ -57,23 +59,13 @@ describe('export and import', () => {
       .should('have.value', 'Imported');
   });
 
-  it('keeps current data when the import is cancelled', () => {
-    backup().find('#import-file').selectFile(
-      { contents: Cypress.Buffer.from(JSON.stringify(validBackup)), fileName: 'backup.json' },
-      { force: true }
-    );
-    backup().find('#cancel-import').click();
-    app().find('person-editor').eq(0).shadow().find('input[aria-label="Person name"]')
-      .should('not.have.value', 'Imported');
-  });
-
   it('shows an error and leaves data unchanged for an invalid file', () => {
     backup().find('#import-file').selectFile(
       { contents: Cypress.Buffer.from('{not json'), fileName: 'bad.json' },
       { force: true }
     );
-    backup().find('.error').should('contain.text', 'not valid JSON');
-    backup().find('#confirm-import').should('not.exist');
+    backup().find('.import-errors').should('contain.text', 'not valid JSON');
+    backup().find('.export-errors').should('not.exist');
     app().find('person-editor').eq(0).shadow().find('input[aria-label="Person name"]')
       .should('not.have.value', 'Imported');
   });
