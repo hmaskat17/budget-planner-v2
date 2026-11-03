@@ -2,21 +2,16 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import {
   backupFileName,
-  buildBudgetReport,
-  buildReportDocument,
   createBackup,
   parseBackup,
-  renderReportCsv,
-  renderReportPdf,
-  reportFileName,
   serializeBackup,
   type BudgetData,
   type ValidationIssue
 } from '@budget-planner/core';
 import { baseStyles } from '../ui/shared-styles.ts';
 import { icon } from '../ui/icons.ts';
-import { LocalizeController, getLocalePreference, money, percent, scenarioName, t } from '../i18n/index.ts';
-import { downloadBackup, downloadFile, readBackupFile } from '../adapters/backup-file.ts';
+import { LocalizeController, t } from '../i18n/index.ts';
+import { downloadBackup, readBackupFile } from '../adapters/backup-file.ts';
 import type { MessageKey } from '@budget-planner/preferences';
 
 const KNOWN_ISSUE_CODES = ['invalid-json', 'invalid-format', 'invalid-version', 'unsupported-version'];
@@ -202,36 +197,6 @@ export class BackupSettings extends LitElement {
     }
   }
 
-  private _exportReport(format: 'pdf' | 'csv'): void {
-    if (!this.data) {
-      return;
-    }
-    this._reset();
-    try {
-      const now = new Date();
-      const { numberLocale } = getLocalePreference();
-      const lines = buildReportDocument(buildBudgetReport(this.data), {
-        t: (key, params) => t(key as MessageKey, params),
-        money,
-        percent,
-        scenarioName,
-        generatedAt: now.toLocaleDateString(numberLocale)
-      });
-      if (format === 'pdf') {
-        downloadFile(reportFileName('pdf', now), renderReportPdf(lines), 'application/pdf');
-      } else {
-        const decimalSeparator = new Intl.NumberFormat(numberLocale).format(1.5).includes(',') ? ',' : '.';
-        const csv = renderReportCsv(lines, {
-          decimalSeparator,
-          delimiter: decimalSeparator === ',' ? ';' : ','
-        });
-        downloadFile(reportFileName('csv', now), csv, 'text/csv;charset=utf-8');
-      }
-    } catch {
-      this._exportErrors = [t('backup.exportFailed')];
-    }
-  }
-
   private async _onFileChosen(): Promise<void> {
     const file = this._fileInput.files?.[0];
     this._fileInput.value = '';
@@ -302,16 +267,6 @@ export class BackupSettings extends LitElement {
                       ${this._exportErrors.map((message) => html`<li>${message}</li>`)}
                     </ul>`
                   : ''}
-              </section>
-              <section aria-labelledby="report-title">
-                <h2 id="report-title">${t('report.sectionTitle')}</h2>
-                <p class="info">${t('report.info')}</p>
-                <button type="button" id="export-report-pdf" @click=${() => this._exportReport('pdf')}>
-                  ${icon('download', 16)}${t('report.exportPdf')}
-                </button>
-                <button type="button" id="export-report-csv" @click=${() => this._exportReport('csv')}>
-                  ${icon('download', 16)}${t('report.exportCsv')}
-                </button>
               </section>
             </div>
           `

@@ -43,14 +43,6 @@ describe('export and import', () => {
       });
   });
 
-  it('downloads the budget report as CSV and PDF', () => {
-    const day = new Date().toISOString().slice(0, 10);
-    backup().find('#export-report-csv').click();
-    cy.readFile(`cypress/downloads/budget-planner-report-${day}.csv`).should('contain', 'Budget report');
-    backup().find('#export-report-pdf').click();
-    cy.readFile(`cypress/downloads/budget-planner-report-${day}.pdf`, 'latin1').should('match', /^%PDF-1\.4/);
-  });
-
   it('imports immediately without confirmation and keeps data after reload', () => {
     backup().find('#import-file').selectFile(
       { contents: Cypress.Buffer.from(JSON.stringify(validBackup)), fileName: 'backup.json' },
@@ -76,5 +68,28 @@ describe('export and import', () => {
     backup().find('.export-errors').should('not.exist');
     app().find('person-editor').eq(0).shadow().find('input[aria-label="Person name"]')
       .should('not.have.value', 'Imported');
+  });
+});
+
+describe('report export', () => {
+  const summary = () => app().find('budget-summary').shadow();
+
+  beforeEach(() => {
+    cy.visit('/', {
+      onBeforeLoad(window) {
+        window.localStorage.clear();
+        window.localStorage.setItem('budget-planner-locale-preference', JSON.stringify(REGIONAL_PREFERENCE));
+      }
+    });
+    app().find('#summary-section').should('be.visible');
+  });
+
+  it('downloads the report as PDF by default and as CSV when selected', () => {
+    const day = new Date().toISOString().slice(0, 10);
+    summary().find('#export-report').click();
+    cy.readFile(`cypress/downloads/budget-planner-report-${day}.pdf`, 'latin1').should('match', /^%PDF-1\.4/);
+    summary().find('#report-format').select('csv');
+    summary().find('#export-report').click();
+    cy.readFile(`cypress/downloads/budget-planner-report-${day}.csv`).should('contain', 'Budget report');
   });
 });

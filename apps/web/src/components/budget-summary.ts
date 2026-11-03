@@ -1,10 +1,23 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 import { consume } from '@lit/context';
-import { calculateBudgetSummary } from '@budget-planner/core';
+import {
+  buildBudgetReport,
+  buildReportDocument,
+  calculateBudgetSummary,
+  renderReportCsv,
+  renderReportPdf,
+  reportFileName
+} from '@budget-planner/core';
 import { budgetContext, type BudgetContextValue } from '../context/budget-context.ts';
 import { baseStyles } from '../ui/shared-styles.ts';
-import { LocalizeController, money, percent, t } from '../i18n/index.ts';
+import { LocalizeController, getLocalePreference, money, percent, scenarioName, t } from '../i18n/index.ts';
+import { downloadFile } from '../adapters/backup-file.ts';
+import { icon } from '../ui/icons.ts';
+import type { MessageKey } from '@budget-planner/preferences';
+
+type ReportFormat = 'pdf' | 'csv';
+const REPORT_FORMATS: ReportFormat[] = ['pdf', 'csv'];
 
 type Operator = '+' | '−' | '';
 
@@ -88,6 +101,50 @@ export class BudgetSummary extends LitElement {
       .line.gap {
         margin-top: 10px;
       }
+      .report-export {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-soft);
+      }
+      .report-export label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-2);
+      }
+      .report-export select {
+        height: 40px;
+        padding: 0 10px;
+        color: var(--text);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+      }
+      .report-export button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        padding: 0 14px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--accent);
+        background: transparent;
+        border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+        border-radius: var(--radius-sm);
+      }
+      .report-export button:hover {
+        background: color-mix(in srgb, var(--accent) 8%, transparent);
+      }
+      .report-export .error {
+        flex-basis: 100%;
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--negative);
+      }
       .pooled-note {
         margin: 0;
         font-size: 0.85rem;
@@ -98,6 +155,12 @@ export class BudgetSummary extends LitElement {
 
   @consume({ context: budgetContext, subscribe: true })
   budget?: BudgetContextValue;
+
+  @state()
+  private _reportFormat: ReportFormat = 'pdf';
+
+  @state()
+  private _reportError = false;
 
   protected readonly _localize = new LocalizeController(this);
 
@@ -117,6 +180,36 @@ export class BudgetSummary extends LitElement {
         >
       </h3>
     `;
+  }
+
+  private _exportReport(): void {
+    if (!this.budget) {
+      return;
+    }
+    this._reportError = false;
+    try {
+      const now = new Date();
+      const { numberLocale } = getLocalePreference();
+      const lines = buildReportDocument(buildBudgetReport(this.budget.data), {
+        t: (key, params) => t(key as MessageKey, params),
+        money,
+        percent,
+        scenarioName,
+        generatedAt: now.toLocaleDateString(numberLocale)
+      });
+      if (this._reportFormat === 'pdf') {
+        downloadFile(reportFileName('pdf', now), renderReportPdf(lines), 'application/pdf');
+      } else {
+        const decimalSeparator = new Intl.NumberFormat(numberLocale).format(1.5).includes(',') ? ',' : '.';
+        const csv = renderReportCsv(lines, {
+          decimalSeparator,
+          delimiter: decimalSeparator === ',' ? ';' : ','
+        });
+        downloadFile(reportFileName('csv', now), csv, 'text/csv;charset=utf-8');
+      }
+    } catch {
+      this._reportError = true;
+    }
   }
 
   private _amount(value: number): string {
@@ -212,6 +305,22 @@ export class BudgetSummary extends LitElement {
           ${this._result(t('summary.afterSavings'), s.remainingAfterSavings, 'summary-remaining-after', afterTone)}
           ${s.remainingAfterSavings < 0 ? html`<p class="hint" id="summary-shortfall">${t('summary.shortfall')}</p>` : nothing}
         </div>
+      </div>
+      <div class="report-export">
+        <label for="report-format">${t('report.format')}</label>
+        <select
+          id="report-format"
+          @change=${(e: Event) => (this._reportFormat = (e.target as HTMLSelectElement).value as ReportFormat)}
+        >
+          ${REPORT_FORMATS.map(
+            (format) =>
+              html`<option value=${format} ?selected=${this._reportFormat === format}>${t(`report.format.${format}`)}</option>`
+          )}
+        </select>
+        <button type="button" id="export-report" @click=${() => this._exportReport()}>
+          ${icon('download', 16)}${t('report.export')}
+        </button>
+        ${this._reportError ? html`<p class="error" role="alert">${t('backup.exportFailed')}</p>` : nothing}
       </div>
     `;
   }
