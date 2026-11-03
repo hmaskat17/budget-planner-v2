@@ -38,6 +38,7 @@ export const fi: Messages = {
   'report.title': 'Budjettiraportti',
   'report.generated': 'Luotu {date}',
   'report.personScenario': '{person} ({scenario})',
+  'report.section.overview': 'Talouden yhteenveto',
   'report.section.income': 'Tulot',
   'report.section.expenses': 'Menot',
   'report.section.savings': 'Säästöt',

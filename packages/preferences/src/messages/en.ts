@@ -37,6 +37,7 @@ export const en = {
   'report.title': 'Budget report',
   'report.generated': 'Generated {date}',
   'report.personScenario': '{person} ({scenario})',
+  'report.section.overview': 'Household overview',
   'report.section.income': 'Income',
   'report.section.expenses': 'Expenses',
   'report.section.savings': 'Savings',

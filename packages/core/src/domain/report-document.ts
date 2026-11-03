@@ -69,6 +69,17 @@ export function buildReportDocument(report: BudgetReport, f: ReportFormatter): R
   lines.push({ kind: 'title', text: f.t('report.title') });
   lines.push({ kind: 'subtitle', text: f.t('report.generated', { date: f.generatedAt }) });
 
+  lines.push({ kind: 'heading', text: f.t('report.section.overview') });
+  lines.push({
+    kind: 'equation',
+    terms: [
+      term('', f.t('report.income'), report.totalIncome),
+      term('-', f.t('report.expenses'), report.totalExpenses),
+      term('-', f.t('report.savings'), report.totalSavingsAllocated)
+    ],
+    result: term('', f.t('report.netRemaining'), report.netRemaining)
+  });
+
   lines.push({ kind: 'heading', text: f.t('report.section.income') });
   report.people.forEach((person) => {
     lines.push({ kind: 'subheading', text: scenarioHeading(name(person.person), person.incomeScenario) });

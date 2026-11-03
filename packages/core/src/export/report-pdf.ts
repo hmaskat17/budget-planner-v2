@@ -11,7 +11,7 @@ const PAGE_HEIGHT = 842;
 const MARGIN = 40;
 const FOOTER_SPACE = 28;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-const OPERATOR_WIDTH = 16;
+const OPERATOR_WIDTH = 22;
 
 type Font = 'F1' | 'F2';
 
@@ -34,11 +34,15 @@ const BOLD_WIDTHS = [
 ];
 
 const COLORS = {
-  text: '0.1 0.1 0.12',
-  muted: '0.42 0.44 0.48',
-  band: '0.9 0.92 0.97',
-  highlight: '0.86 0.93 0.88',
-  rule: '0.78 0.8 0.84'
+  text: '0.09 0.1 0.13',
+  muted: '0.36 0.39 0.45',
+  accent: '0.14 0.28 0.55',
+  onAccent: '1 1 1',
+  onAccentMuted: '0.82 0.88 0.97',
+  card: '0.92 0.94 0.98',
+  stripe: '0.955 0.96 0.97',
+  rule: '0.55 0.58 0.64',
+  negative: '0.75 0.1 0.1'
 };
 
 /** Maps a character to the single WinAnsi byte (as a char) that represents it. */
@@ -125,6 +129,8 @@ class PageBuilder {
   private ops: string[] = [];
   /** Distance from the top of the page to the current drawing position. */
   y = MARGIN;
+  /** Alternating row backgrounds make it easier to follow a row across the page. */
+  stripe = false;
 
   constructor() {
     this.newPage();
@@ -159,15 +165,15 @@ class PageBuilder {
     this.ops.push(`${color} rg ${x.toFixed(2)} ${(PAGE_HEIGHT - top - height).toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re f`);
   }
 
-  line(x1: number, x2: number, atY: number, color = COLORS.rule): void {
+  line(x1: number, x2: number, atY: number, color = COLORS.rule, width = 0.5): void {
     const y = (PAGE_HEIGHT - atY).toFixed(2);
-    this.ops.push(`${color} RG 0.5 w ${x1.toFixed(2)} ${y} m ${x2.toFixed(2)} ${y} l S`);
+    this.ops.push(`${color} RG ${width} w ${x1.toFixed(2)} ${y} m ${x2.toFixed(2)} ${y} l S`);
   }
 }
 
 function fitText(raw: string, font: Font, maxSize: number, maxWidth: number): number {
   const width = measureText(raw, font, maxSize);
-  return width > maxWidth ? Math.max(5, (maxSize * maxWidth) / width) : maxSize;
+  return width > maxWidth ? Math.max(6, (maxSize * maxWidth) / width) : maxSize;
 }
 
 function truncate(encoded: string, font: Font, size: number, maxWidth: number): string {
@@ -181,97 +187,113 @@ function truncate(encoded: string, font: Font, size: number, maxWidth: number): 
   return `${text}...`;
 }
 
+const BODY_SIZE = 10.5;
+const ROW_HEIGHT = 17;
+const VALUE_WIDTH = 100;
+const DETAIL_WIDTH = 110;
+
+const amountColor = (amount: number | undefined): string =>
+  amount !== undefined && amount < -0.005 ? COLORS.negative : COLORS.text;
+
 function drawRow(page: PageBuilder, line: Extract<ReportLine, { kind: 'row' }>): void {
-  const size = 9.5;
   const font: Font = line.strong ? 'F2' : 'F1';
-  const indent = line.level ? 14 : 0;
-  const valueWidth = 110;
-  const detailWidth = line.detail ? 120 : 0;
-  const labelWidth = CONTENT_WIDTH - indent - valueWidth - detailWidth - 8;
-  const labelLines = wrap(encode(line.label), font, size, labelWidth);
-  const height = labelLines.length * 12 + 3;
-  page.ensure(height);
+  const indent = line.level ? 16 : 6;
+  const detailWidth = line.detail ? DETAIL_WIDTH : 0;
+  const labelWidth = CONTENT_WIDTH - indent - VALUE_WIDTH - detailWidth - 12;
+  const labelLines = wrap(encode(line.label), font, BODY_SIZE, labelWidth);
+  const height = labelLines.length * 13 + 4;
+  page.ensure(Math.max(height, ROW_HEIGHT));
+  const top = page.y;
   if (line.strong) {
-    page.line(MARGIN, PAGE_WIDTH - MARGIN, page.y);
+    page.line(MARGIN, PAGE_WIDTH - MARGIN, top, COLORS.rule, 0.8);
+    page.stripe = false;
+  } else {
+    if (page.stripe) {
+      page.rect(MARGIN, top, CONTENT_WIDTH, Math.max(height, ROW_HEIGHT), COLORS.stripe);
+    }
+    page.stripe = !page.stripe;
   }
-  const baseline = page.y + 10;
-  labelLines.forEach((text, index) => page.text(text, MARGIN + indent, baseline + index * 12, font, size));
+  const baseline = top + 12.5;
+  labelLines.forEach((text, index) => page.text(text, MARGIN + indent, baseline + index * 13, font, BODY_SIZE));
   if (line.detail) {
-    const detail = truncate(encode(line.detail), 'F1', 8.5, detailWidth);
-    page.aligned(detail, MARGIN + CONTENT_WIDTH - valueWidth - detailWidth, detailWidth - 8, 'right', baseline, 'F1', 8.5, COLORS.muted);
+    const detail = truncate(encode(line.detail), 'F1', 9.5, detailWidth - 10);
+    page.aligned(detail, MARGIN + CONTENT_WIDTH - VALUE_WIDTH - detailWidth, detailWidth - 10, 'right', baseline, 'F1', 9.5, COLORS.muted);
   }
-  page.aligned(encode(line.value), MARGIN + CONTENT_WIDTH - valueWidth, valueWidth, 'right', baseline, font, size);
-  page.y += height;
+  page.aligned(encode(line.value), MARGIN + CONTENT_WIDTH - VALUE_WIDTH - 6, VALUE_WIDTH, 'right', baseline, font, BODY_SIZE, amountColor(line.amount));
+  page.y = top + Math.max(height, ROW_HEIGHT);
 }
 
 function drawEquation(page: PageBuilder, line: Extract<ReportLine, { kind: 'equation' }>): void {
-  const columns = line.terms.length + 1;
-  const operators = line.terms.filter((term) => term.op).length + 1;
-  const columnWidth = (CONTENT_WIDTH - operators * OPERATOR_WIDTH) / columns;
-  const labelSize = 7;
-  const labelLines = (term: EquationTerm) => wrap(encode(term.label), 'F1', labelSize, columnWidth - 4).slice(0, 3);
   const all = [...line.terms, line.result];
-  const maxLabelLines = Math.max(...all.map((term) => labelLines(term).length));
-  const height = 22 + maxLabelLines * 9 + 8;
-  page.ensure(height + 6);
-  page.y += 4;
+  const columnWidth = (CONTENT_WIDTH - (all.length - 1) * OPERATOR_WIDTH) / all.length;
+  const labelSize = 8.5;
+  const labelLines = (term: EquationTerm) => wrap(encode(term.label), 'F1', labelSize, columnWidth - 8).slice(0, 2);
+  const labelHeight = Math.max(...all.map((term) => labelLines(term).length)) * 10.5;
+  const height = 12 + labelHeight + 22;
+  page.ensure(height + 12);
+  page.y += 6;
   const top = page.y;
-  page.rect(MARGIN, top, CONTENT_WIDTH, height, COLORS.band);
 
   let x = MARGIN;
   all.forEach((term, index) => {
     const isResult = index === all.length - 1;
     const op = isResult ? '=' : term.op;
-    if (op) {
-      page.aligned(op, x, OPERATOR_WIDTH, 'center', top + 20, 'F2', 12, COLORS.muted);
+    if (index > 0) {
+      if (op) {
+        page.aligned(op, x, OPERATOR_WIDTH, 'center', top + height / 2 + 6, 'F2', 16, COLORS.accent);
+      }
       x += OPERATOR_WIDTH;
     }
-    if (isResult) {
-      page.rect(x + 1, top + 3, columnWidth - 2, height - 6, COLORS.highlight);
-    }
-    const value = encode(term.value);
-    const size = fitText(value, 'F2', 11, columnWidth - 4);
-    page.aligned(value, x, columnWidth, 'center', top + 17, 'F2', size);
+    page.rect(x, top, columnWidth, height, isResult ? COLORS.accent : COLORS.card);
     labelLines(term).forEach((text, lineIndex) =>
-      page.aligned(text, x, columnWidth, 'center', top + 28 + lineIndex * 9, 'F1', labelSize, COLORS.muted)
+      page.aligned(text, x, columnWidth, 'center', top + 14 + lineIndex * 10.5, 'F1', labelSize, isResult ? COLORS.onAccentMuted : COLORS.muted)
     );
+    const value = encode(term.value);
+    const size = fitText(value, 'F2', 14, columnWidth - 8);
+    const color = isResult ? COLORS.onAccent : amountColor(term.amount);
+    page.aligned(value, x, columnWidth, 'center', top + 14 + labelHeight + 11, 'F2', size, color);
     x += columnWidth;
   });
-  page.y = top + height + 4;
+  page.y = top + height + 8;
+  page.stripe = false;
 }
 
 function drawLine(page: PageBuilder, line: ReportLine): void {
   switch (line.kind) {
     case 'title':
-      page.ensure(30);
-      page.text(encode(line.text), MARGIN, page.y + 20, 'F2', 20);
-      page.y += 28;
+      page.ensure(36);
+      page.text(encode(line.text), MARGIN, page.y + 24, 'F2', 24, COLORS.accent);
+      page.y += 32;
       break;
     case 'subtitle':
-      page.ensure(16);
-      page.text(encode(line.text), MARGIN, page.y + 9, 'F1', 9, COLORS.muted);
-      page.y += 14;
+      page.ensure(18);
+      page.text(encode(line.text), MARGIN, page.y + 10, 'F1', 10, COLORS.muted);
+      page.y += 18;
       break;
     case 'heading':
-      page.ensure(70);
-      page.y += 10;
-      page.rect(MARGIN, page.y, CONTENT_WIDTH, 22, COLORS.band);
-      page.text(encode(line.text), MARGIN + 8, page.y + 15, 'F2', 12);
-      page.y += 28;
+      page.ensure(120);
+      page.y += 14;
+      page.rect(MARGIN, page.y, CONTENT_WIDTH, 26, COLORS.accent);
+      page.text(encode(line.text), MARGIN + 10, page.y + 18, 'F2', 14, COLORS.onAccent);
+      page.y += 32;
+      page.stripe = false;
       break;
     case 'subheading': {
-      const lines = wrap(encode(line.text), 'F2', 10, CONTENT_WIDTH);
-      page.ensure(40 + lines.length * 13);
-      page.y += 6;
-      lines.forEach((text, index) => page.text(text, MARGIN, page.y + 10 + index * 13, 'F2', 10));
-      page.y += lines.length * 13 + 3;
+      const lines = wrap(encode(line.text), 'F2', 11.5, CONTENT_WIDTH);
+      page.ensure(80 + lines.length * 14);
+      page.y += 10;
+      lines.forEach((text, index) => page.text(text, MARGIN, page.y + 11 + index * 14, 'F2', 11.5, COLORS.accent));
+      page.y += lines.length * 14 + 2;
+      page.line(MARGIN, PAGE_WIDTH - MARGIN, page.y, COLORS.accent, 1);
+      page.y += 3;
+      page.stripe = false;
       break;
     }
     case 'note': {
-      const lines = wrap(encode(line.text), 'F1', 9, CONTENT_WIDTH);
-      page.ensure(lines.length * 12 + 4);
-      lines.forEach((text, index) => page.text(text, MARGIN, page.y + 10 + index * 12, 'F1', 9, COLORS.muted));
-      page.y += lines.length * 12 + 4;
+      const lines = wrap(encode(line.text), 'F1', 10, CONTENT_WIDTH);
+      page.ensure(lines.length * 13 + 6);
+      lines.forEach((text, index) => page.text(text, MARGIN, page.y + 11 + index * 13, 'F1', 10, COLORS.muted));
+      page.y += lines.length * 13 + 6;
       break;
     }
     case 'row':

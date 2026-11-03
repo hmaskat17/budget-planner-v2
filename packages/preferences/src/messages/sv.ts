@@ -38,6 +38,7 @@ export const sv: Messages = {
   'report.title': 'Budgetrapport',
   'report.generated': 'Skapad {date}',
   'report.personScenario': '{person} ({scenario})',
+  'report.section.overview': 'Hushållets sammanfattning',
   'report.section.income': 'Inkomster',
   'report.section.expenses': 'Utgifter',
   'report.section.savings': 'Sparande',

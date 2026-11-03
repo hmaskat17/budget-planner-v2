@@ -119,6 +119,7 @@ describe('report document', () => {
     const lines = buildReportDocument(buildBudgetReport(makeData()), formatter);
     const headings = lines.filter((line) => line.kind === 'heading').map((line) => (line as { text: string }).text);
     expect(headings).toEqual([
+      'report.section.overview',
       'report.section.income',
       'report.section.expenses',
       'report.section.savings',
