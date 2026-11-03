@@ -144,32 +144,45 @@ describe('report document', () => {
 });
 
 describe('renderReportCsv', () => {
-  const lines = buildReportDocument(buildBudgetReport(makeData()), formatter);
+  const report = buildBudgetReport(makeData());
+  const parse = (csv: string) => csv.replace('\uFEFF', '').trimEnd().split('\r\n');
 
-  it('starts with a byte order mark and uses CRLF line breaks', () => {
-    const csv = renderReportCsv(lines, { delimiter: ',', decimalSeparator: '.' });
+  it('writes a flat table with a header, a byte order mark and CRLF line breaks', () => {
+    const csv = renderReportCsv(report, formatter, { delimiter: ',', decimalSeparator: '.' });
     expect(csv.startsWith('\uFEFF')).toBe(true);
-    expect(csv).toContain('\r\n');
-    expect(csv).toContain('  Salary,,3000.00');
+    const rows = parse(csv);
+    expect(rows[0]).toBe(
+      'report.csv.section,report.csv.person,report.csv.category,report.csv.item,report.csv.percent,report.csv.amount'
+    );
+    expect(rows[1]).toBe('report.section.income,Alex,report.csv.income,Salary,,3000.00');
+    expect(new Set(rows.slice(1).map((row) => row.split(',').length)).size).toBe(1);
+  });
+
+  it('contains plain numbers, no totals and no active settlement entries', () => {
+    const rows = parse(renderReportCsv(report, formatter, { delimiter: ',', decimalSeparator: '.' }));
+    expect(rows.some((row) => /€|settlement/i.test(row))).toBe(false);
+    const incomeSum = rows
+      .filter((row) => row.startsWith('report.section.income,'))
+      .reduce((total, row) => total + Number(row.split(',')[5]), 0);
+    expect(incomeSum).toBe(report.totalIncomeWithAssets);
   });
 
   it('uses the locale delimiter and decimal separator', () => {
-    const csv = renderReportCsv(lines, { delimiter: ';', decimalSeparator: ',' });
-    expect(csv).toContain('  Salary;;3000,00');
+    const csv = renderReportCsv(report, formatter, { delimiter: ';', decimalSeparator: ',' });
+    expect(csv).toContain('report.section.income;Alex;report.csv.income;Salary;;3000,00');
   });
 
   it('quotes special characters and neutralizes formulas', () => {
-    const csv = renderReportCsv(
-      [
-        { kind: 'row', label: 'He said "hi", ok', value: '', level: 0 },
-        { kind: 'row', label: '=SUM(A1)', value: '', level: 0 },
-        { kind: 'row', label: 'Debt', value: '-5', amount: -5, level: 0 }
-      ],
-      { delimiter: ',', decimalSeparator: '.' }
-    );
-    expect(csv).toContain('"He said ""hi"", ok"');
+    const data = makeData();
+    data.incomeByPerson.p1 = state([{ name: '=SUM(A1)', amount: 5 }, { name: 'He said "hi", ok', amount: 1 }]);
+    const csv = renderReportCsv(buildBudgetReport(data), formatter, { delimiter: ',', decimalSeparator: '.' });
     expect(csv).toContain("'=SUM(A1)");
-    expect(csv).toContain('Debt,,-5.00');
+    expect(csv).toContain('"He said ""hi"", ok"');
+  });
+
+  it('keeps negative amounts numeric', () => {
+    const rows = parse(renderReportCsv(report, formatter, { delimiter: ',', decimalSeparator: '.' }));
+    expect(rows.filter((row) => row.includes('report.balance')).every((row) => /,-?\d+\.\d{2}$/.test(row))).toBe(true);
   });
 });
 

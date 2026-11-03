@@ -190,18 +190,19 @@ export class BudgetSummary extends LitElement {
     try {
       const now = new Date();
       const { numberLocale } = getLocalePreference();
-      const lines = buildReportDocument(buildBudgetReport(this.budget.data), {
-        t: (key, params) => t(key as MessageKey, params),
+      const formatter = {
+        t: (key: string, params?: Record<string, string | number>) => t(key as MessageKey, params),
         money,
         percent,
         scenarioName,
         generatedAt: now.toLocaleDateString(numberLocale)
-      });
+      };
+      const report = buildBudgetReport(this.budget.data);
       if (this._reportFormat === 'pdf') {
-        downloadFile(reportFileName('pdf', now), renderReportPdf(lines), 'application/pdf');
+        downloadFile(reportFileName('pdf', now), renderReportPdf(buildReportDocument(report, formatter)), 'application/pdf');
       } else {
         const decimalSeparator = new Intl.NumberFormat(numberLocale).format(1.5).includes(',') ? ',' : '.';
-        const csv = renderReportCsv(lines, {
+        const csv = renderReportCsv(report, formatter, {
           decimalSeparator,
           delimiter: decimalSeparator === ',' ? ';' : ','
         });

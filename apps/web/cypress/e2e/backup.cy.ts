@@ -90,6 +90,6 @@ describe('report export', () => {
     cy.readFile(`cypress/downloads/budget-planner-report-${day}.pdf`, 'latin1').should('match', /^%PDF-1\.4/);
     summary().find('#report-format').select('csv');
     summary().find('#export-report').click();
-    cy.readFile(`cypress/downloads/budget-planner-report-${day}.csv`).should('contain', 'Budget report');
+    cy.readFile(`cypress/downloads/budget-planner-report-${day}.csv`).should('contain', 'Section,Person,Category,Item,Percent,Amount');
   });
 });
