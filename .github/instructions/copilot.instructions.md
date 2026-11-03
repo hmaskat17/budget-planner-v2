@@ -10,7 +10,7 @@ applyTo: '**'
 - Read `specs.md` for application specifications.
 - Work on one task at a time.
 - Before implementing, explain the proposed approach.
-- Follow the existing architecture and coding conventions.
+- Follow the existing architecture and coding conventions - structure platform-specific code and shared code appropriately.
 - Run relevant tests after implementation.
 - Only mark a task complete after verification.
 - Record any remaining issues or follow-up tasks.

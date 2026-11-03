@@ -43,6 +43,14 @@ describe('export and import', () => {
       });
   });
 
+  it('downloads the budget report as CSV and PDF', () => {
+    const day = new Date().toISOString().slice(0, 10);
+    backup().find('#export-report-csv').click();
+    cy.readFile(`cypress/downloads/budget-planner-report-${day}.csv`).should('contain', 'Budget report');
+    backup().find('#export-report-pdf').click();
+    cy.readFile(`cypress/downloads/budget-planner-report-${day}.pdf`, 'latin1').should('match', /^%PDF-1\.4/);
+  });
+
   it('imports immediately without confirmation and keeps data after reload', () => {
     backup().find('#import-file').selectFile(
       { contents: Cypress.Buffer.from(JSON.stringify(validBackup)), fileName: 'backup.json' },

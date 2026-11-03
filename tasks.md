@@ -29,6 +29,8 @@ Mark tasks `[x]` when done. Unsure ideas go in [Future / undecided](#future--und
 - [x] Add export/import using a versioned data format and shared validation; keep storage and file interactions in platform-specific adapters.
 - [ ] Add translations for core validation issue messages once they are surfaced in the UI (e.g. import/export).
   - Import/export is done: the UI maps issue codes to `backup.issue.*` messages, with all other validation issues shown as a generic message plus the data path. Remaining: translate the fine-grained validation codes (`invalid-amount`, `invalid-percent`, ...) if more detail is wanted.
+- [x] Add support for exporting a detailed summary of budget data as a report to PDF and CSV (equation-style layout, active scenarios only, dependency-free PDF writer in `packages/core`).
+  - Follow-ups: sharing (Web Share) was dropped for now; PDF supports only Latin-1 text and the euro sign (other characters print as `?`).
 
 ## Phase 4 - Web product review
 - [ ] Product: Review the current budget experience and logic for web. Prioritize findings and agree on which product changes are in scope before implementation.
@@ -68,7 +70,6 @@ Ideas we are not sure about and will come back to.
   - [ ] Mobile: Reuse the core parser; applying themes in the Android app is out of scope until the web version is done.
 - [ ] Mobile: Reassess iOS support after the Android app is established.
 - [ ] Web/Mobile: Add ability to invite another user as collaborator
-- [ ] Web/Mobile: Add support for exporting or sharing budget data / detailed summary as a report to PDF, CSV etc.
 - [ ] Web/Mobile: Add ability to copy a scenario to a new scenario
 - [ ] Web/Mobile: Add a savings overview of yearly accumulated savings for e.g. 1 year, 3 years, 5years and 10 years.
 - [ ] Web: Add a new UI style: Excel/90's software

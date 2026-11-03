@@ -31,6 +31,10 @@ export function backupFileName(now: Date = new Date()): string {
   return `budget-planner-backup-${now.toISOString().slice(0, 10)}.json`;
 }
 
+export function reportFileName(extension: 'pdf' | 'csv', now: Date = new Date()): string {
+  return `budget-planner-report-${now.toISOString().slice(0, 10)}.${extension}`;
+}
+
 function fail(path: string, code: string, message: string): ParseBackupResult {
   return { ok: false, issues: [{ path, code, message }] };
 }
