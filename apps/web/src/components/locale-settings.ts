@@ -36,11 +36,15 @@ export class LocaleSettings extends LitElement {
       :host {
         position: relative;
         display: inline-block;
+        flex-shrink: 0;
       }
       .toggle {
         display: inline-flex;
+        flex-direction: row;
         align-items: center;
         gap: 6px;
+        width: max-content;
+        white-space: nowrap;
         height: 36px;
         padding: 0 12px;
         font-size: 0.85rem;
