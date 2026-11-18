@@ -51,7 +51,7 @@ export class BackupSettings extends LitElement {
       }
       .panel {
         position: absolute;
-        right: 0;
+        left: 0;
         z-index: 20;
         display: flex;
         flex-direction: column;
@@ -63,6 +63,30 @@ export class BackupSettings extends LitElement {
         border: 1px solid var(--border);
         border-radius: var(--radius);
         box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+      }
+      @media (max-width: 600px) {
+        :host {
+          position: static;
+        }
+        .panel {
+          top: calc(100% + 8px);
+          width: min(320px, 100%);
+          margin-top: 0;
+          max-height: calc(100vh - 120px);
+          overflow-y: auto;
+        }
+      }
+      @media (max-width: 550px) {
+        .toggle {
+          padding: 0 10px;
+        }
+        .toggle-label {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+        }
       }
       section {
         display: flex;
@@ -229,7 +253,7 @@ export class BackupSettings extends LitElement {
         aria-controls="backup-panel"
         @click=${() => this._setOpen(!this._open)}
       >
-        ${icon('download', 16)}${t('backup.title')}
+        ${icon('download', 16)}<span class="toggle-label">${t('backup.title')}</span>
       </button>
       ${this._open
         ? html`

@@ -60,7 +60,7 @@ export class LocaleSettings extends LitElement {
       }
       .panel {
         position: absolute;
-        right: 0;
+        left: 0;
         z-index: 20;
         display: flex;
         flex-direction: column;
@@ -72,6 +72,23 @@ export class LocaleSettings extends LitElement {
         border: 1px solid var(--border);
         border-radius: var(--radius);
         box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+      }
+      @media (max-width: 600px) {
+        :host {
+          position: static;
+        }
+        .panel {
+          top: calc(100% + 8px);
+          width: min(320px, 100%);
+          margin-top: 0;
+          max-height: calc(100vh - 120px);
+          overflow-y: auto;
+        }
+      }
+      @media (max-width: 550px) {
+        .toggle {
+          padding: 0 6px;
+        }
       }
       .field {
         display: flex;

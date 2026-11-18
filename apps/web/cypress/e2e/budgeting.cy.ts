@@ -12,6 +12,7 @@ describe('critical budgeting workflows', () => {
         window.localStorage.setItem('budget-planner-locale-preference', JSON.stringify(REGIONAL_PREFERENCE));
       }
     });
+
     app().find('#household-section').should('be.visible');
   });
 
@@ -218,5 +219,61 @@ describe('critical budgeting workflows', () => {
       app().find('#household-total-amount').should('have.text', '£100.00');
       component('budget-income').find('input[placeholder="Amount"]').should('have.value', '100');
     });
+  });
+
+  describe('responsive header', () => {
+    for (const width of [320, 500, 550, 551, 600, 900, 901, 1280]) {
+      it(`keeps controls and popovers usable at ${width}px`, () => {
+        cy.viewport(width, 800);
+        cy.visit('/', {
+          onBeforeLoad(window) {
+            window.localStorage.clear();
+            const language = width === 500 || width === 551 ? 'sv' : 'en';
+            window.localStorage.setItem('budget-planner-locale-preference',
+              JSON.stringify({ ...REGIONAL_PREFERENCE, language }));
+          }
+        });
+
+        app().find('.app-header').should(($header) => {
+          const header = $header[0];
+          const brand = header.querySelector('.brand')!.getBoundingClientRect();
+          const actions = header.querySelector('.header-actions')!;
+          const row = actions.getBoundingClientRect();
+          const controls = ['backup-settings', 'locale-settings', '#color-scheme', '#color-mode']
+            .map((selector) => header.querySelector(selector)!.getBoundingClientRect());
+
+          expect(getComputedStyle(actions).overflowX).to.equal('visible');
+          expect(width <= 900 ? row.top >= brand.bottom : row.top < brand.bottom).to.be.true;
+          controls.forEach((control) => {
+            expect(control.top).to.be.closeTo(controls[0].top, 1);
+            expect(control.right).to.be.at.most(row.right + 1);
+          });
+        });
+
+        for (const [selector, toggle, panel] of [
+          ['backup-settings', '#backup-toggle', '#backup-panel'],
+          ['locale-settings', '#locale-toggle', '#locale-panel']
+        ]) {
+          component(selector).find(toggle).click();
+          component(selector).find(panel).should('be.visible').should(($panel) => {
+            const element = $panel[0];
+            const bounds = element.getBoundingClientRect();
+            const host = (element.getRootNode() as ShadowRoot).host;
+            const button = host.shadowRoot!.querySelector(toggle)!.getBoundingClientRect();
+            const actions = host.parentElement!.getBoundingClientRect();
+            expect(bounds.left).to.be.closeTo(width <= 600 ? actions.left : button.left, 1);
+            expect(bounds.right).to.be.at.most(element.ownerDocument.documentElement.clientWidth);
+            expect(bounds.top).to.be.greaterThan(button.bottom);
+          });
+          if (selector === 'locale-settings') {
+            component(selector).find('#currency-search').type('usd');
+            component(selector).find('.currency-option').should('have.attr', 'data-currency', 'USD');
+          } else {
+            component(selector).find('h2').first().click();
+          }
+          component(selector).find(toggle).click();
+        }
+      });
+    }
   });
 });

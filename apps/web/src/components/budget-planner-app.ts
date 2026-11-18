@@ -106,6 +106,7 @@ export class BudgetPlannerApp extends LitElement {
     .logo {
       display: grid;
       place-items: center;
+      flex: none;
       width: 44px;
       height: 44px;
       color: #fff;
@@ -135,10 +136,12 @@ export class BudgetPlannerApp extends LitElement {
       border-radius: var(--radius-sm);
     }
     .header-actions {
+      position: relative;
       display: flex;
+      flex-wrap: nowrap;
       align-items: center;
       justify-content: flex-end;
-      gap: 16px;
+      gap: 10px;
     }
     .appearance-controls {
       display: flex;
@@ -391,6 +394,12 @@ export class BudgetPlannerApp extends LitElement {
       }
       .app-header {
         padding: 20px 16px 12px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
       }
       .layout {
         display: block;
@@ -421,14 +430,27 @@ export class BudgetPlannerApp extends LitElement {
       }
     }
 
-    @media (max-width: 600px) {
-      .app-header {
-        align-items: flex-start;
-        flex-direction: column;
+    @media (max-width: 550px) {
+      .header-actions,
+      .appearance-controls {
+        gap: 4px;
       }
-      .header-actions {
-        width: 100%;
-        justify-content: flex-end;
+      .appearance-controls {
+        min-width: 0;
+      }
+      .theme-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      .appearance-controls select {
+        min-width: 0;
+        width: 76px;
+      }
+      .mode-toggle {
+        flex: none;
       }
     }
   `;
