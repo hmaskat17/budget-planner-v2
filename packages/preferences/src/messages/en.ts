@@ -36,8 +36,8 @@ export const en = {
 
   'report.format': 'Report format',
   'report.export': 'Download report',
-  'report.format.pdf': 'PDF document (.pdf)',
-  'report.format.csv': 'CSV spreadsheet (.csv)',
+  'report.format.pdf': 'PDF',
+  'report.format.csv': 'CSV',
   'report.csv.section': 'Section',
   'report.csv.person': 'Person',
   'report.csv.category': 'Category',

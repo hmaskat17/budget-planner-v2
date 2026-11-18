@@ -105,10 +105,16 @@ export class BudgetSummary extends LitElement {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
+        justify-content: flex-end;
         gap: 10px;
         margin-top: 16px;
         padding-top: 16px;
         border-top: 1px solid var(--border-soft);
+      }
+      .report-format {
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
       .report-export label {
         font-size: 0.9rem;
@@ -142,6 +148,7 @@ export class BudgetSummary extends LitElement {
       .report-export .error {
         flex-basis: 100%;
         margin: 0;
+        text-align: right;
         font-size: 0.8125rem;
         color: var(--negative);
       }
@@ -308,16 +315,18 @@ export class BudgetSummary extends LitElement {
         </div>
       </div>
       <div class="report-export">
-        <label for="report-format">${t('report.format')}</label>
-        <select
-          id="report-format"
-          @change=${(e: Event) => (this._reportFormat = (e.target as HTMLSelectElement).value as ReportFormat)}
-        >
-          ${REPORT_FORMATS.map(
-            (format) =>
-              html`<option value=${format} ?selected=${this._reportFormat === format}>${t(`report.format.${format}`)}</option>`
-          )}
-        </select>
+        <div class="report-format">
+          <label for="report-format">${t('report.format')}</label>
+          <select
+            id="report-format"
+            @change=${(e: Event) => (this._reportFormat = (e.target as HTMLSelectElement).value as ReportFormat)}
+          >
+            ${REPORT_FORMATS.map(
+              (format) =>
+                html`<option value=${format} ?selected=${this._reportFormat === format}>${t(`report.format.${format}`)}</option>`
+            )}
+          </select>
+        </div>
         <button type="button" id="export-report" @click=${() => this._exportReport()}>
           ${icon('download', 16)}${t('report.export')}
         </button>

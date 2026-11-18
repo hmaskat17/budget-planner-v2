@@ -37,8 +37,8 @@ export const sv: Messages = {
 
   'report.format': 'Rapportformat',
   'report.export': 'Ladda ner rapport',
-  'report.format.pdf': 'PDF-dokument (.pdf)',
-  'report.format.csv': 'CSV-kalkylblad (.csv)',
+  'report.format.pdf': 'PDF',
+  'report.format.csv': 'CSV',
   'report.csv.section': 'Avsnitt',
   'report.csv.person': 'Person',
   'report.csv.category': 'Kategori',

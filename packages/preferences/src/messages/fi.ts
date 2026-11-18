@@ -37,8 +37,8 @@ export const fi: Messages = {
 
   'report.format': 'Raportin muoto',
   'report.export': 'Lataa raportti',
-  'report.format.pdf': 'PDF-dokumentti (.pdf)',
-  'report.format.csv': 'CSV-taulukko (.csv)',
+  'report.format.pdf': 'PDF',
+  'report.format.csv': 'CSV',
   'report.csv.section': 'Osio',
   'report.csv.person': 'Henkilö',
   'report.csv.category': 'Luokka',

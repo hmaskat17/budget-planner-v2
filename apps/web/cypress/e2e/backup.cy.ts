@@ -92,4 +92,37 @@ describe('report export', () => {
     summary().find('#export-report').click();
     cy.readFile(`cypress/downloads/budget-planner-report-${day}.csv`).should('contain', 'Section,Person,Category,Item,Percent,Amount');
   });
+
+  it('keeps report controls right-aligned and within the section at narrow and wide sizes', () => {
+    for (const width of [320, 375, 500, 1280]) {
+      cy.viewport(width, 800);
+      summary().find('.report-export').should(($section) => {
+        const section = $section[0].getBoundingClientRect();
+        const format = $section[0].querySelector('.report-format')!.getBoundingClientRect();
+        const label = $section[0].querySelector('label')!.getBoundingClientRect();
+        const select = $section[0].querySelector('select')!.getBoundingClientRect();
+        const button = $section[0].querySelector('button')!.getBoundingClientRect();
+        expect(button.right).to.be.closeTo(section.right, 1);
+        expect(format.left).to.be.at.least(section.left);
+        expect(label.right).to.be.at.most(select.left);
+        if (button.top > format.bottom) {
+          expect(format.right).to.be.closeTo(section.right, 1);
+        }
+      });
+      summary().find('#report-format').select('csv').should('have.value', 'csv');
+    }
+  });
+
+  it('uses short format labels in each supported language', () => {
+    const checkOptions = () => summary().find('#report-format option').then(($options) => {
+      expect([...$options].map((option) => option.textContent!.trim())).to.deep.equal(['PDF', 'CSV']);
+    });
+
+    checkOptions();
+    app().find('locale-settings').shadow().find('#locale-toggle').click();
+    for (const language of ['fi', 'sv']) {
+      app().find('locale-settings').shadow().find('#language-select').select(language);
+      checkOptions();
+    }
+  });
 });
